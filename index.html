@@ -3,26 +3,22 @@
 <head>
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-<title>手账待办 · 今日清单</title>
-<link rel="preconnect" href="https://fonts.googleapis.com" />
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Patrick+Hand&display=swap" rel="stylesheet" />
+<title>待办清单 · 今日</title>
 <style>
   :root {
-    --paper: #fbf6ec;
-    --ink: #5a4632;
-    --ink-soft: #9b8a72;
-    --line: #e8ddc9;
-    --pink: #f4c6c2;
-    --pink-deep: #e58f88;
-    --mint: #bfe0d2;
-    --mint-deep: #6fbfa0;
-    --lavender: #dccdee;
-    --lavender-deep: #a98cc9;
-    --sky: #c5e0f2;
-    --sky-deep: #6fa8d4;
-    --mustard: #f4dc9a;
-    --mustard-deep: #d3a94e;
+    --orange: #F28C38;
+    --orange-dark: #E07B25;
+    --orange-soft: #FEF0E5;
+    --orange-border: #FBE0C8;
+    --bg: #F6F7F9;
+    --card: #FFFFFF;
+    --ink: #1F2937;
+    --ink-soft: #6B7280;
+    --ink-faint: #9CA3AF;
+    --line: #EEF0F3;
+    --radius: 16px;
+    --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 1px 3px rgba(16, 24, 40, .06);
+    --shadow-hover: 0 4px 14px rgba(16, 24, 40, .08);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -30,793 +26,467 @@
   html, body { height: 100%; }
 
   body {
-    font-family: 'Ma Shan Zheng', 'Kaiti SC', 'STKaiti', 'KaiTi', 'Patrick Hand', cursive;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+      "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     color: var(--ink);
-    min-height: 100vh;
-    padding: 40px 18px 80px;
-    display: flex;
-    align-items: flex-start;
-    justify-content: center;
-    overflow-x: hidden;
+    background: var(--bg);
+    -webkit-font-smoothing: antialiased;
   }
 
-  /* 散落的贴纸装饰 */
-  .sticker {
-    position: fixed;
-    z-index: 3;
-    font-size: 34px;
-    opacity: .85;
-    pointer-events: none;
-    filter: drop-shadow(0 2px 3px rgba(120,100,70,.18));
+  /* ===== 整体布局：左侧固定侧边栏 + 右侧自适应内容 ===== */
+  .app { display: flex; min-height: 100vh; }
+
+  .sidebar {
+    width: 240px;
+    flex-shrink: 0;
+    position: sticky;
+    top: 0;
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    background: var(--card);
+    border-right: 1px solid var(--line);
+    padding: 24px 16px;
+  }
+
+  .brand { display: flex; align-items: center; gap: 12px; padding: 4px 8px 20px; }
+
+  .brand-logo {
+    width: 40px; height: 40px;
+    flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 20px;
+    color: #fff;
+    background: var(--orange);
+    border-radius: 12px;
+    box-shadow: 0 4px 10px rgba(242, 140, 56, .28);
+  }
+
+  .brand-name { font-size: 17px; font-weight: 700; letter-spacing: 1px; }
+  .brand-sub { font-size: 12px; color: var(--ink-faint); margin-top: 2px; }
+
+  .nav { flex: 1; }
+
+  .nav-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 11px 14px;
+    border-radius: 12px;
+    font-size: 15px;
+    color: var(--ink-soft);
+    cursor: pointer;
+    transition: background .15s, color .15s;
     user-select: none;
   }
+  .nav-item:hover { background: #F4F5F7; color: var(--ink); }
+  .nav-item.active {
+    background: var(--orange-soft);
+    color: var(--orange-dark);
+    font-weight: 600;
+  }
+  .nav-icon { font-size: 18px; line-height: 1; }
 
-  /* ===== 新海诚「你的名字」风格背景 ===== */
-  .bg {
-    position: fixed;
-    inset: 0;
-    z-index: 0;
-    overflow: hidden;
-    background: #16386f;
-  }
-  .scene {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    display: none;
-  }
-  .bg.theme-day .scene-day { display: block; }
-  .bg.theme-sunset .scene-sunset { display: block; }
-  .bg.theme-night .scene-night { display: block; }
+  .sidebar-foot { padding: 12px 8px 0; border-top: 1px solid var(--line); }
+  .foot-note { font-size: 12px; color: var(--ink-faint); }
 
-  /* 飘浮的光尘 */
-  .particles {
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    overflow: hidden;
-  }
-  .particles i {
-    position: absolute;
-    bottom: -10px;
-    border-radius: 50%;
-    background: rgba(255, 255, 255, .85);
-    filter: blur(1px);
-    opacity: 0;
-    animation: rise linear infinite;
-  }
-  @keyframes rise {
-    0% { transform: translateY(0); opacity: 0; }
-    8% { opacity: .7; }
-    85% { opacity: .35; }
-    100% { transform: translateY(-105vh); opacity: 0; }
+  /* ===== 右侧主内容区 ===== */
+  .main { flex: 1; min-width: 0; }
+
+  .content {
+    max-width: 760px;
+    margin: 0 auto;
+    padding: 40px 28px 64px;
   }
 
-  /* 主题切换按钮 */
-  .theme-switch {
-    position: fixed;
-    top: 16px;
-    right: 16px;
-    z-index: 3;
-    display: flex;
-    gap: 4px;
-    background: rgba(255, 255, 255, .72);
-    border-radius: 26px;
-    padding: 6px 8px;
-    box-shadow: 0 2px 10px rgba(120, 95, 60, .2);
-    backdrop-filter: blur(6px);
+  .page-head { margin-bottom: 22px; }
+  .page-head h1 {
+    font-size: 28px;
+    font-weight: 700;
+    letter-spacing: 1px;
   }
-  .theme-switch button {
-    border: none;
-    background: transparent;
-    font-size: 20px;
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    cursor: pointer;
-    line-height: 1;
-    transition: background .15s, transform .15s;
-  }
-  .theme-switch button:hover { transform: scale(1.15); }
-  .theme-switch button.active {
-    background: rgba(244, 198, 194, .6);
-    box-shadow: 0 0 0 2px #e58f88;
-  }
-
-  .page {
-    position: relative;
-    z-index: 1;
-    width: 100%;
-    max-width: 560px;
-    background:
-      linear-gradient(var(--paper), var(--paper)) padding-box,
-      repeating-linear-gradient(0deg, transparent, transparent 31px, #f0e6d2 31px, #f0e6d2 32px);
-    border-radius: 10px;
-    box-shadow:
-      0 2px 6px rgba(120,95,60,.12),
-      0 18px 45px rgba(120,95,60,.22);
-    padding: 26px 30px 34px;
-    border: 1px solid #eadfc8;
-  }
-
-  /* 左边装订孔 */
-  .page::before {
+  .page-head h1::before {
     content: "";
-    position: absolute;
-    left: 12px; top: 0; bottom: 0;
-    width: 8px;
-    background-image: radial-gradient(circle at 4px 18px, #d9cbb0 3.2px, transparent 3.4px);
-    background-size: 8px 48px;
-    background-repeat: repeat-y;
-    opacity: .7;
-  }
-
-  /* 顶部和纸胶带 */
-  .tape {
-    position: absolute;
-    width: 130px;
-    height: 30px;
-    opacity: .9;
-    box-shadow: 0 1px 3px rgba(120,95,60,.15);
-  }
-  .tape.tl { top: -13px; left: -18px; transform: rotate(-38deg); background: rgba(244,198,194,.75); }
-  .tape.tr { top: -13px; right: -18px; transform: rotate(38deg); background: rgba(191,224,210,.75); }
-
-  header { text-align: center; margin-bottom: 14px; padding-left: 6px; }
-
-  .date {
     display: inline-block;
-    font-size: 15px;
-    color: var(--ink-soft);
-    letter-spacing: 2px;
-    padding: 3px 14px;
-    background: rgba(244,220,154,.35);
-    border-radius: 20px;
-    margin-bottom: 4px;
+    width: 8px; height: 22px;
+    background: var(--orange);
+    border-radius: 4px;
+    margin-right: 12px;
+    vertical-align: -3px;
+  }
+  .page-head .date { margin-top: 6px; font-size: 14px; color: var(--ink-soft); padding-left: 20px; }
+
+  /* ===== 卡片通用 ===== */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: var(--radius);
+    box-shadow: var(--shadow);
   }
 
-  h1 {
-    font-weight: normal;
-    font-size: 42px;
-    letter-spacing: 4px;
-    color: var(--ink);
-    line-height: 1.1;
-    text-shadow: 1px 1px 0 #fff;
-  }
-
-  .subtitle {
-    font-size: 15px;
-    color: var(--ink-soft);
-    letter-spacing: 1px;
-    margin-top: 2px;
-  }
-
-  /* 励志便签 */
+  /* 励志语卡片 */
   .quote-card {
+    display: flex; align-items: center; gap: 10px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+    font-size: 16px;
+    color: var(--ink);
     position: relative;
-    margin: 18px 8px 4px;
-    padding: 16px 42px 16px 18px;
-    background: #fdf4c8;
-    border-radius: 5px;
-    box-shadow: 0 3px 9px rgba(150,120,70,.18);
-    transform: rotate(-1.2deg);
-    font-size: 18px;
-    color: #7a6235;
-    letter-spacing: 1px;
-    line-height: 1.5;
-    transition: transform .2s;
   }
-  .quote-card:hover { transform: rotate(0deg); }
-  .quote-card::before {
-    content: "";
-    position: absolute;
-    top: -10px; left: 50%;
-    transform: translateX(-50%) rotate(-3deg);
-    width: 76px; height: 20px;
-    background: rgba(197,224,242,.72);
-    border-radius: 2px;
-    opacity: .9;
-  }
-  .quote-mark {
-    font-size: 26px;
-    color: #d3a94e;
-    vertical-align: -4px;
-    margin-right: 2px;
-  }
+  .quote-mark { font-size: 24px; color: var(--orange); line-height: 1; font-family: Georgia, serif; }
+  .quote-text { flex: 1; line-height: 1.6; }
   .quote-btn {
-    position: absolute;
-    top: 8px; right: 8px;
-    width: 28px; height: 28px;
+    flex-shrink: 0;
+    width: 30px; height: 30px;
     border: none;
-    background: rgba(255,255,255,.5);
+    background: var(--orange-soft);
+    color: var(--orange-dark);
     border-radius: 50%;
-    font-size: 17px;
-    color: #b7955a;
+    font-size: 16px;
     cursor: pointer;
     transition: transform .3s, background .15s;
   }
-  .quote-btn:hover { background: rgba(255,255,255,.9); }
+  .quote-btn:hover { background: var(--orange-border); }
   .quote-btn:active { transform: rotate(180deg); }
 
-  .tape-strip {
-    height: 8px;
-    margin: 16px 0 20px;
-    background: repeating-linear-gradient(45deg,
-      rgba(244,198,194,.6) 0 16px,
-      rgba(191,224,210,.6) 16px 32px,
-      rgba(220,205,238,.6) 32px 48px,
-      rgba(244,220,154,.6) 48px 64px);
-    border-radius: 4px;
-    opacity: .9;
-  }
+  /* 添加任务卡片 */
+  .add-card { padding: 16px; margin-bottom: 18px; }
 
-  /* 输入区 */
-  .add-row { display: flex; gap: 8px; align-items: stretch; }
+  .add-row { display: flex; gap: 10px; align-items: stretch; }
 
-  .input-wrap {
-    position: relative;
+  .add-row input {
     flex: 1;
-  }
-  .input-wrap input {
-    width: 100%;
+    min-width: 0;
     font-family: inherit;
-    font-size: 20px;
+    font-size: 15px;
     color: var(--ink);
-    background: rgba(255,255,255,.55);
-    border: 2px dashed #d9c6a4;
+    background: #FAFBFC;
+    border: 1.5px solid var(--line);
     border-radius: 12px;
-    padding: 10px 14px 10px 12px;
+    padding: 11px 14px;
     outline: none;
-    transition: border-color .15s, background .15s;
+    transition: border-color .15s, background .15s, box-shadow .15s;
   }
-  .input-wrap input::placeholder { color: #c2b29a; }
-  .input-wrap input:focus { border-color: var(--pink-deep); background: rgba(255,255,255,.8); }
+  .add-row input::placeholder { color: var(--ink-faint); }
+  .add-row input:focus {
+    border-color: var(--orange);
+    background: #fff;
+    box-shadow: 0 0 0 3px var(--orange-soft);
+  }
 
-  .cat-select {
+  .add-row select {
     font-family: inherit;
-    font-size: 17px;
+    font-size: 14px;
     color: var(--ink);
-    background: rgba(255,255,255,.55);
-    border: 2px dashed #d9c6a4;
+    background: #FAFBFC;
+    border: 1.5px solid var(--line);
     border-radius: 12px;
-    padding: 0 10px;
+    padding: 0 12px;
     cursor: pointer;
     outline: none;
+    transition: border-color .15s;
   }
+  .add-row select:focus { border-color: var(--orange); }
 
   .add-btn {
     font-family: inherit;
-    font-size: 20px;
+    font-size: 15px;
+    font-weight: 600;
     color: #fff;
-    background: var(--pink-deep);
+    background: var(--orange);
     border: none;
     border-radius: 12px;
-    padding: 8px 18px;
+    padding: 0 20px;
     cursor: pointer;
-    box-shadow: 0 3px 0 #cf746e;
-    transform: translateY(0);
-    transition: transform .08s, box-shadow .08s;
-    letter-spacing: 1px;
+    white-space: nowrap;
+    transition: background .15s, transform .08s, box-shadow .15s;
+    box-shadow: 0 4px 10px rgba(242, 140, 56, .25);
   }
-  .add-btn:hover { filter: brightness(1.04); }
-  .add-btn:active { transform: translateY(3px); box-shadow: 0 0 0 #cf746e; }
+  .add-btn:hover { background: var(--orange-dark); }
+  .add-btn:active { transform: translateY(1px); box-shadow: 0 2px 6px rgba(242, 140, 56, .25); }
 
-  /* 分类筛选 */
-  .filters {
-    display: flex;
-    gap: 8px;
-    margin: 18px 0 6px;
-    flex-wrap: wrap;
+  /* 任务列表卡片 */
+  .list-card { padding: 8px 0 0; overflow: hidden; }
+
+  .list-head {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 10px 20px 4px;
   }
+
+  .filters { display: flex; gap: 6px; }
   .filter-btn {
     font-family: inherit;
-    font-size: 16px;
+    font-size: 14px;
     color: var(--ink-soft);
     background: transparent;
-    border: 2px solid transparent;
-    border-radius: 20px;
-    padding: 4px 14px;
+    border: none;
+    border-radius: 10px;
+    padding: 6px 14px;
     cursor: pointer;
-    letter-spacing: 1px;
-    transition: all .15s;
+    transition: background .15s, color .15s;
   }
-  .filter-btn:hover { color: var(--ink); }
-  .filter-btn.active {
-    color: var(--ink);
-    background: rgba(255,255,255,.6);
-    border-color: #e3d4b6;
-    box-shadow: inset 0 -2px 0 var(--pink);
-  }
+  .filter-btn:hover { background: #F4F5F7; color: var(--ink); }
+  .filter-btn.active { background: var(--orange-soft); color: var(--orange-dark); font-weight: 600; }
 
-  /* 进度条 */
-  .progress {
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    margin: 12px 0 6px;
-  }
-  .progress-bar {
-    flex: 1;
-    height: 12px;
-    background: #ece0c9;
-    border-radius: 20px;
-    overflow: hidden;
-    border: 1px solid #e2d3b6;
-  }
+  .progress-label { font-size: 13px; color: var(--ink-faint); white-space: nowrap; }
+
+  .progress { padding: 0 20px 12px; }
+  .progress-bar { height: 8px; background: #F0F1F3; border-radius: 20px; overflow: hidden; }
   .progress-fill {
     height: 100%;
     width: 0%;
-    background: repeating-linear-gradient(45deg,
-      #f4c6c2 0 8px, #e8b4ae 8px 16px);
+    background: var(--orange);
     border-radius: 20px;
     transition: width .4s ease;
   }
-  .progress-label { font-size: 16px; color: var(--ink-soft); white-space: nowrap; }
 
-  /* 列表 */
-  ul { list-style: none; margin-top: 8px; }
+  ul { list-style: none; }
+
+  /* 分类分组 */
+  .cat-group {
+    display: flex; align-items: center; gap: 8px;
+    padding: 16px 20px 8px;
+  }
+  .cat-group-title { font-size: 14px; font-weight: 600; color: var(--ink-soft); letter-spacing: 1px; }
+  .cat-group-count {
+    font-size: 12px;
+    color: var(--ink-faint);
+    background: #F3F4F6;
+    border-radius: 10px;
+    padding: 1px 8px;
+  }
 
   li.todo {
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 12px 10px 12px 6px;
-    border-bottom: 1.5px dashed #e7d9bf;
-    animation: pop .25s ease;
-    position: relative;
+    display: flex; align-items: center; gap: 12px;
+    padding: 13px 20px;
+    border-top: 1px solid var(--line);
+    animation: pop .22s ease;
   }
   @keyframes pop {
-    from { opacity: 0; transform: translateY(-6px); }
+    from { opacity: 0; transform: translateY(-5px); }
     to { opacity: 1; transform: translateY(0); }
   }
 
   .check {
     flex: 0 0 auto;
-    width: 26px; height: 26px;
-    border: 2.5px solid #d3b78a;
+    width: 24px; height: 24px;
+    border: 2px solid #D6D9DD;
     border-radius: 50%;
     cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    background: rgba(255,255,255,.5);
-    transition: all .18s;
-    font-size: 16px;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 14px;
     color: transparent;
+    transition: all .18s;
   }
-  .check:hover { border-color: var(--pink-deep); }
+  .check:hover { border-color: var(--orange); }
 
   li.todo.done .check {
-    background: var(--pink);
-    border-color: var(--pink-deep);
+    background: var(--orange);
+    border-color: var(--orange);
     color: #fff;
     animation: stamp .3s ease;
   }
   @keyframes stamp {
-    0% { transform: scale(1.6); opacity: .4; }
-    60% { transform: scale(.92); }
+    0% { transform: scale(1.5); opacity: .5; }
+    60% { transform: scale(.94); }
     100% { transform: scale(1); opacity: 1; }
   }
 
-  .text { flex: 1; font-size: 21px; word-break: break-word; line-height: 1.35; }
-  li.todo.done .text {
-    color: #b9a98f;
-    text-decoration: line-through;
-    text-decoration-color: rgba(180,150,110,.6);
-  }
+  .text { flex: 1; min-width: 0; font-size: 15px; word-break: break-word; line-height: 1.5; }
+  li.todo.done .text { color: var(--ink-faint); text-decoration: line-through; }
 
   .tag {
     flex: 0 0 auto;
-    font-size: 13px;
-    padding: 2px 10px;
+    font-size: 12px;
+    padding: 3px 10px;
     border-radius: 20px;
     letter-spacing: 1px;
-    box-shadow: 0 1px 2px rgba(120,95,60,.15);
-    transform: rotate(-2deg);
   }
-  .tag.cat-生活 { background: var(--pink); color: #9c4a43; }
-  .tag.cat-工作 { background: var(--sky); color: #3f6f96; }
-  .tag.cat-学习 { background: var(--mint); color: #3d8068; }
-  .tag.cat-心情 { background: var(--lavender); color: #7a5c9e; }
-  .tag.cat-其他 { background: var(--mustard); color: #946f1f; }
+  .tag.cat-生活 { background: #FEF0E5; color: #E07B25; }
+  .tag.cat-工作 { background: #E8F1FD; color: #2F6FBF; }
+  .tag.cat-学习 { background: #E7F6EE; color: #2F9E6E; }
+  .tag.cat-心情 { background: #FDEBF0; color: #D65B8A; }
+  .tag.cat-其他 { background: #F0EEFB; color: #7A6BD0; }
 
-  /* 优先级标记 */
   .pri {
     flex: 0 0 auto;
-    width: 22px; height: 22px;
-    line-height: 22px;
+    min-width: 24px; height: 24px;
+    line-height: 24px;
     text-align: center;
-    font-size: 13px;
-    color: #fff;
-    border-radius: 50%;
+    font-size: 12px;
+    font-weight: 600;
+    border-radius: 8px;
+    padding: 0 7px;
     cursor: pointer;
     user-select: none;
-    box-shadow: 0 1px 2px rgba(120,95,60,.18);
     transition: transform .15s;
   }
-  .pri:hover { transform: scale(1.18); }
-  .pri.p-high { background: var(--pink-deep); }
-  .pri.p-mid  { background: var(--mustard-deep); }
-  .pri.p-low  { background: var(--sky-deep); }
+  .pri:hover { transform: scale(1.08); }
+  .pri.p-high { background: var(--orange); color: #fff; }
+  .pri.p-mid  { background: var(--orange-soft); color: var(--orange-dark); }
+  .pri.p-low  { background: #F3F4F6; color: var(--ink-faint); }
   li.todo.done .pri { opacity: .55; }
-
-  /* 分类分组 */
-  .cat-group {
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    padding: 18px 4px 7px;
-    border-bottom: 2px solid #e7d9bf;
-  }
-  .cat-group:first-child { padding-top: 8px; }
-  .cat-group-title {
-    font-size: 20px;
-    letter-spacing: 2px;
-    color: var(--ink);
-    text-shadow: 1px 1px 0 #fff;
-  }
-  .cat-group-count {
-    font-size: 13px;
-    color: var(--ink-soft);
-    background: rgba(255,255,255,.55);
-    border-radius: 12px;
-    padding: 1px 9px;
-    letter-spacing: 1px;
-  }
 
   .del {
     flex: 0 0 auto;
     width: 28px; height: 28px;
     border: none;
     background: transparent;
-    font-size: 18px;
-    color: #c6b397;
+    font-size: 16px;
+    color: var(--ink-faint);
     cursor: pointer;
     border-radius: 50%;
     opacity: 0;
-    transition: opacity .15s, background .15s;
+    transition: opacity .15s, background .15s, color .15s;
   }
   li.todo:hover .del { opacity: 1; }
-  .del:hover { background: rgba(229,143,136,.18); color: var(--pink-deep); }
+  .del:hover { background: #FDECEC; color: #E5484D; }
 
   .empty {
     text-align: center;
-    color: #bfae90;
-    font-size: 18px;
-    padding: 34px 0;
-    letter-spacing: 1px;
+    color: var(--ink-faint);
+    font-size: 15px;
+    padding: 40px 20px;
   }
-  .empty .doodle { font-size: 52px; display: block; margin-bottom: 8px; }
+  .empty .doodle { font-size: 44px; display: block; margin-bottom: 10px; }
 
   footer {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-top: 18px;
-    padding-top: 12px;
-    border-top: 2px dotted #e0d2b6;
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 20px 16px;
+    border-top: 1px solid var(--line);
   }
   .clear-btn {
     font-family: inherit;
-    font-size: 15px;
-    color: var(--ink-soft);
+    font-size: 13px;
+    color: var(--ink-faint);
     background: transparent;
     border: none;
     cursor: pointer;
-    text-decoration: underline dotted;
-    letter-spacing: 1px;
+    transition: color .15s;
   }
-  .clear-btn:hover { color: var(--pink-deep); }
+  .clear-btn:hover { color: #E5484D; }
 
   .stamp-done {
     display: inline-block;
-    font-size: 15px;
-    color: var(--pink-deep);
-    border: 2px solid var(--pink-deep);
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--orange-dark);
+    background: var(--orange-soft);
     border-radius: 8px;
-    padding: 1px 10px;
-    transform: rotate(-6deg);
-    letter-spacing: 2px;
-    background: rgba(244,198,194,.15);
+    padding: 3px 12px;
+    letter-spacing: 1px;
   }
 
-  @media (max-width: 480px) {
-    .page { padding: 22px 18px 30px; }
-    h1 { font-size: 34px; }
+  /* ===== 响应式：窄屏时侧边栏变成顶部横栏 ===== */
+  @media (max-width: 768px) {
+    .app { flex-direction: column; }
+    .sidebar {
+      width: 100%; height: auto;
+      position: static;
+      flex-direction: row;
+      align-items: center;
+      gap: 12px;
+      padding: 12px 16px;
+      border-right: none;
+      border-bottom: 1px solid var(--line);
+    }
+    .brand { padding: 0; }
+    .brand-logo { width: 34px; height: 34px; font-size: 16px; border-radius: 10px; }
+    .brand-sub { display: none; }
+    .nav { flex: 1; display: flex; }
+    .nav-item { padding: 8px 12px; }
+    .sidebar-foot { display: none; }
+    .content { padding: 24px 16px 48px; }
     .add-row { flex-wrap: wrap; }
-    .cat-select { padding: 8px; }
-    .add-btn { flex: 1; }
+    .add-row input { flex: 1 1 100%; }
+    .add-row select { flex: 1; padding: 0 8px; }
+    .add-btn { flex: 1; padding: 11px 0; }
   }
 </style>
 </head>
 <body>
-  <div class="bg theme-day" id="bg">
-    <!-- 白昼：蓝天 · 积云 · 光束 -->
-    <svg class="scene scene-day" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="skyDay" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#123a72"/>
-          <stop offset="0.28" stop-color="#2a6baa"/>
-          <stop offset="0.55" stop-color="#5aa5d8"/>
-          <stop offset="0.78" stop-color="#a3d2ef"/>
-          <stop offset="0.92" stop-color="#d6ecfb"/>
-          <stop offset="1" stop-color="#eef9ff"/>
-        </linearGradient>
-        <radialGradient id="sunGlowDay" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stop-color="#fffef2" stop-opacity="1"/>
-          <stop offset="0.2" stop-color="#fff3c2" stop-opacity="0.9"/>
-          <stop offset="0.5" stop-color="#ffe9a0" stop-opacity="0.4"/>
-          <stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/>
-        </radialGradient>
-        <linearGradient id="cloudFill" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#ffffff"/>
-          <stop offset="0.55" stop-color="#f2f7fd"/>
-          <stop offset="1" stop-color="#c9d9ec"/>
-        </linearGradient>
-        <linearGradient id="cloudFillHaze" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#ffffff"/>
-          <stop offset="1" stop-color="#b7d4ec"/>
-        </linearGradient>
-        <filter id="blur2"><feGaussianBlur stdDeviation="2.5"/></filter>
-        <filter id="blur6"><feGaussianBlur stdDeviation="6"/></filter>
-        <filter id="blur40"><feGaussianBlur stdDeviation="40"/></filter>
-        <g id="cumulus">
-          <ellipse cx="-70" cy="-18" rx="95" ry="58"/>
-          <ellipse cx="10" cy="-46" rx="128" ry="82"/>
-          <ellipse cx="132" cy="-30" rx="104" ry="62"/>
-          <ellipse cx="218" cy="-8" rx="78" ry="44"/>
-          <rect x="-118" y="-22" width="370" height="86" rx="43"/>
-        </g>
-        <g id="cumulusSmall">
-          <ellipse cx="-45" cy="-12" rx="62" ry="38"/>
-          <ellipse cx="8" cy="-28" rx="80" ry="50"/>
-          <ellipse cx="70" cy="-16" rx="60" ry="36"/>
-          <rect x="-78" y="-12" width="220" height="50" rx="25"/>
-        </g>
-      </defs>
-      <rect width="1600" height="900" fill="url(#skyDay)"/>
-      <g>
-        <circle cx="1180" cy="210" r="500" fill="url(#sunGlowDay)"/>
-        <circle cx="1180" cy="210" r="60" fill="#fffdf0" filter="url(#blur6)"/>
-        <g fill="#fff4cf" opacity="0.22" filter="url(#blur40)">
-          <polygon points="1180,210 700,900 940,900"/>
-          <polygon points="1180,210 1000,900 1260,900"/>
-          <polygon points="1180,210 1320,900 1600,900"/>
-        </g>
-      </g>
-      <g filter="url(#blur2)">
-        <use href="#cumulus" fill="url(#cloudFill)" transform="translate(250,330) scale(1.05)"/>
-        <use href="#cumulus" fill="url(#cloudFill)" transform="translate(1120,430) scale(1.2)"/>
-        <use href="#cumulusSmall" fill="url(#cloudFill)" transform="translate(700,260) scale(0.9)"/>
-        <use href="#cumulusSmall" fill="url(#cloudFill)" transform="translate(1450,300) scale(0.8)"/>
-      </g>
-      <g fill="url(#cloudFillHaze)" opacity="0.55" filter="url(#blur6)">
-        <ellipse cx="200" cy="640" rx="300" ry="36"/>
-        <ellipse cx="820" cy="620" rx="420" ry="40"/>
-        <ellipse cx="1400" cy="650" rx="340" ry="34"/>
-      </g>
-      <g>
-        <path d="M0,735 L150,610 L320,720 L480,575 L660,705 L820,595 L1000,710 L1180,565 L1360,705 L1520,615 L1600,700 L1600,900 L0,900 Z" fill="#6f9fd0" opacity="0.75"/>
-        <path d="M0,805 L190,690 L390,800 L570,665 L770,800 L970,700 L1170,800 L1370,680 L1600,795 L1600,900 L0,900 Z" fill="#3d6ca6" opacity="0.95"/>
-        <path d="M0,870 L260,780 L520,865 L800,760 L1080,865 L1340,780 L1600,860 L1600,900 L0,900 Z" fill="#28507f"/>
-      </g>
-    </svg>
-
-    <!-- 黄昏：晚霞 · 落日 -->
-    <svg class="scene scene-sunset" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="skySunset" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#26386e"/>
-          <stop offset="0.35" stop-color="#7a5a8f"/>
-          <stop offset="0.6" stop-color="#c97d86"/>
-          <stop offset="0.78" stop-color="#f0a06a"/>
-          <stop offset="0.92" stop-color="#f7c97c"/>
-          <stop offset="1" stop-color="#fbe2a0"/>
-        </linearGradient>
-        <radialGradient id="sunGlowSunset" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stop-color="#fff7d8" stop-opacity="1"/>
-          <stop offset="0.25" stop-color="#ffd58a" stop-opacity="0.9"/>
-          <stop offset="0.6" stop-color="#ff9e6e" stop-opacity="0.35"/>
-          <stop offset="1" stop-color="#ff8f6b" stop-opacity="0"/>
-        </radialGradient>
-        <linearGradient id="cloudFillSunset" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#fff4e6"/>
-          <stop offset="0.6" stop-color="#fbd0c0"/>
-          <stop offset="1" stop-color="#c98fb4"/>
-        </linearGradient>
-        <filter id="blur2s"><feGaussianBlur stdDeviation="2.5"/></filter>
-        <filter id="blur6s"><feGaussianBlur stdDeviation="6"/></filter>
-        <filter id="blur40s"><feGaussianBlur stdDeviation="40"/></filter>
-        <g id="cumulusS">
-          <ellipse cx="-70" cy="-18" rx="95" ry="58"/>
-          <ellipse cx="10" cy="-46" rx="128" ry="82"/>
-          <ellipse cx="132" cy="-30" rx="104" ry="62"/>
-          <ellipse cx="218" cy="-8" rx="78" ry="44"/>
-          <rect x="-118" y="-22" width="370" height="86" rx="43"/>
-        </g>
-      </defs>
-      <rect width="1600" height="900" fill="url(#skySunset)"/>
-      <g>
-        <circle cx="800" cy="660" r="620" fill="url(#sunGlowSunset)"/>
-        <circle cx="800" cy="650" r="120" fill="#fff6d8" filter="url(#blur6s)"/>
-        <g fill="#ffe7ae" opacity="0.25" filter="url(#blur40s)">
-          <polygon points="800,660 200,900 460,900"/>
-          <polygon points="800,660 560,900 1040,900"/>
-          <polygon points="800,660 1180,900 1560,900"/>
-        </g>
-      </g>
-      <g filter="url(#blur2s)">
-        <use href="#cumulusS" fill="url(#cloudFillSunset)" transform="translate(240,380) scale(1.1)"/>
-        <use href="#cumulusS" fill="url(#cloudFillSunset)" transform="translate(1150,330) scale(1.2)"/>
-        <use href="#cumulusS" fill="url(#cloudFillSunset)" transform="translate(700,240) scale(0.85)"/>
-      </g>
-      <g>
-        <path d="M0,800 L160,700 L340,790 L520,660 L720,790 L900,690 L1120,800 L1320,700 L1600,790 L1600,900 L0,900 Z" fill="#5a3f6e"/>
-        <path d="M0,850 L200,760 L420,840 L640,730 L860,840 L1080,760 L1300,850 L1500,760 L1600,840 L1600,900 L0,900 Z" fill="#3a2a55"/>
-      </g>
-    </svg>
-
-    <!-- 星空：彗星 · 月亮 -->
-    <svg class="scene scene-night" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
-      <defs>
-        <linearGradient id="skyNight" x1="0" y1="0" x2="0" y2="1">
-          <stop offset="0" stop-color="#050b22"/>
-          <stop offset="0.4" stop-color="#0f1c40"/>
-          <stop offset="0.7" stop-color="#1a2c58"/>
-          <stop offset="1" stop-color="#29406e"/>
-        </linearGradient>
-        <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stop-color="#f4f8ff" stop-opacity="0.9"/>
-          <stop offset="0.4" stop-color="#cfe0f5" stop-opacity="0.35"/>
-          <stop offset="1" stop-color="#cfe0f5" stop-opacity="0"/>
-        </radialGradient>
-        <linearGradient id="cometTail" x1="1" y1="0" x2="0" y2="0">
-          <stop offset="0" stop-color="#dff3ff"/>
-          <stop offset="0.5" stop-color="#9fc9f0"/>
-          <stop offset="1" stop-color="#5f8fd0" stop-opacity="0"/>
-        </linearGradient>
-        <radialGradient id="cometHead" cx="0.5" cy="0.5" r="0.5">
-          <stop offset="0" stop-color="#ffffff"/>
-          <stop offset="0.3" stop-color="#dff3ff"/>
-          <stop offset="1" stop-color="#9fc9f0" stop-opacity="0"/>
-        </radialGradient>
-        <filter id="blur2n"><feGaussianBlur stdDeviation="2"/></filter>
-        <filter id="blur8n"><feGaussianBlur stdDeviation="8"/></filter>
-        <filter id="blur30n"><feGaussianBlur stdDeviation="30"/></filter>
-      </defs>
-      <rect width="1600" height="900" fill="url(#skyNight)"/>
-      <g fill="#ffffff">
-        <circle cx="80" cy="60" r="1.6" opacity="0.9"/>
-        <circle cx="220" cy="140" r="1.2" opacity="0.7"/>
-        <circle cx="340" cy="40" r="1.8" opacity="0.95"/>
-        <circle cx="480" cy="180" r="1.1" opacity="0.6"/>
-        <circle cx="600" cy="90" r="1.5" opacity="0.8"/>
-        <circle cx="720" cy="30" r="1.3" opacity="0.7"/>
-        <circle cx="860" cy="150" r="1.7" opacity="0.9"/>
-        <circle cx="990" cy="60" r="1.2" opacity="0.65"/>
-        <circle cx="1120" cy="190" r="1.5" opacity="0.8"/>
-        <circle cx="1260" cy="40" r="1.4" opacity="0.7"/>
-        <circle cx="1420" cy="120" r="1.8" opacity="0.9"/>
-        <circle cx="1550" cy="70" r="1.3" opacity="0.7"/>
-        <circle cx="150" cy="260" r="1.1" opacity="0.5"/>
-        <circle cx="300" cy="320" r="1.4" opacity="0.7"/>
-        <circle cx="500" cy="280" r="1.0" opacity="0.5"/>
-        <circle cx="660" cy="340" r="1.6" opacity="0.8"/>
-        <circle cx="820" cy="250" r="1.1" opacity="0.55"/>
-        <circle cx="980" cy="330" r="1.4" opacity="0.7"/>
-        <circle cx="1160" cy="270" r="1.0" opacity="0.5"/>
-        <circle cx="1340" cy="300" r="1.5" opacity="0.75"/>
-        <circle cx="1500" cy="220" r="1.2" opacity="0.6"/>
-        <circle cx="70" cy="430" r="1.2" opacity="0.6"/>
-        <circle cx="260" cy="470" r="1.0" opacity="0.45"/>
-        <circle cx="440" cy="400" r="1.3" opacity="0.6"/>
-        <circle cx="620" cy="460" r="1.1" opacity="0.5"/>
-        <circle cx="800" cy="410" r="1.4" opacity="0.65"/>
-        <circle cx="1000" cy="450" r="1.0" opacity="0.5"/>
-        <circle cx="1200" cy="390" r="1.3" opacity="0.6"/>
-        <circle cx="1400" cy="440" r="1.1" opacity="0.55"/>
-        <circle cx="1580" cy="380" r="1.2" opacity="0.6"/>
-        <circle cx="400" cy="560" r="1.0" opacity="0.4"/>
-        <circle cx="760" cy="540" r="1.2" opacity="0.5"/>
-        <circle cx="1100" cy="560" r="1.0" opacity="0.45"/>
-      </g>
-      <g>
-        <circle cx="230" cy="170" r="260" fill="url(#moonGlow)"/>
-        <circle cx="230" cy="170" r="46" fill="#eef4ff" filter="url(#blur2n)"/>
-      </g>
-      <g>
-        <path d="M1245,75 C1060,135 850,215 590,300 C360,372 180,415 60,425 L30,385 C180,375 370,330 590,258 C850,178 1060,100 1245,45 Z" fill="url(#cometTail)" filter="url(#blur8n)"/>
-        <path d="M1245,75 C1080,150 890,235 640,300 C420,360 260,392 120,395 L100,360 C260,356 430,322 640,262 C890,200 1080,115 1245,60 Z" fill="url(#cometTail)" opacity="0.6" filter="url(#blur8n)"/>
-        <circle cx="1245" cy="75" r="120" fill="url(#cometHead)" filter="url(#blur8n)"/>
-        <circle cx="1245" cy="75" r="20" fill="#ffffff"/>
-      </g>
-      <g>
-        <path d="M0,800 L160,700 L340,790 L520,660 L720,790 L900,690 L1120,800 L1320,700 L1600,790 L1600,900 L0,900 Z" fill="#0a1730"/>
-        <path d="M0,860 L220,760 L460,850 L700,740 L960,850 L1220,760 L1440,850 L1600,780 L1600,900 L0,900 Z" fill="#060f20"/>
-      </g>
-    </svg>
-
-    <div class="particles">
-      <i style="left:8%; width:5px; height:5px; animation-duration:16s; animation-delay:-3s;"></i>
-      <i style="left:22%; width:3px; height:3px; animation-duration:13s; animation-delay:-7s;"></i>
-      <i style="left:35%; width:6px; height:6px; animation-duration:19s; animation-delay:-2s;"></i>
-      <i style="left:48%; width:4px; height:4px; animation-duration:15s; animation-delay:-9s;"></i>
-      <i style="left:61%; width:3px; height:3px; animation-duration:12s; animation-delay:-5s;"></i>
-      <i style="left:73%; width:5px; height:5px; animation-duration:18s; animation-delay:-1s;"></i>
-      <i style="left:85%; width:4px; height:4px; animation-duration:14s; animation-delay:-8s;"></i>
-      <i style="left:94%; width:6px; height:6px; animation-duration:20s; animation-delay:-4s;"></i>
-      <i style="left:16%; width:3px; height:3px; animation-duration:17s; animation-delay:-11s;"></i>
-      <i style="left:55%; width:3px; height:3px; animation-duration:15s; animation-delay:-13s;"></i>
-    </div>
-  </div>
-
-  <div class="theme-switch" id="themeSwitch">
-    <button data-theme="day" title="白昼·蓝天">☀️</button>
-    <button data-theme="sunset" title="黄昏·晚霞">🌇</button>
-    <button data-theme="night" title="星空·彗星">☄️</button>
-  </div>
-
-  <span class="sticker" style="top:6%; left:6%; transform:rotate(-12deg);">🌸</span>
-  <span class="sticker" style="top:30%; right:6%; transform:rotate(10deg);">⭐</span>
-  <span class="sticker" style="bottom:10%; left:8%; transform:rotate(8deg);">🍃</span>
-  <span class="sticker" style="bottom:6%; right:6%; transform:rotate(-14deg);">🧸</span>
-
-  <main class="page">
-    <span class="tape tl"></span>
-    <span class="tape tr"></span>
-
-    <header>
-      <div class="date" id="dateText"></div>
-      <h1>今日清单</h1>
-      <div class="subtitle">记录生活 · 慢慢完成 ✍️</div>
-    </header>
-
-    <div class="quote-card">
-      <span class="quote-mark">“</span><span id="quoteText">慢慢来，比较快。</span><span>”</span>
-      <button class="quote-btn" id="quoteBtn" title="换一句">↻</button>
-    </div>
-
-    <div class="tape-strip"></div>
-
-    <div class="add-row">
-      <div class="input-wrap">
-        <input id="input" type="text" maxlength="80" placeholder="写下一件想做的事…" />
+  <div class="app">
+    <!-- 左侧固定侧边栏 -->
+    <aside class="sidebar">
+      <div class="brand">
+        <div class="brand-logo">☑</div>
+        <div>
+          <div class="brand-name">待办清单</div>
+          <div class="brand-sub">记录 · 慢慢完成</div>
+        </div>
       </div>
-      <select class="cat-select" id="catSelect">
-        <option value="生活">生活</option>
-        <option value="工作">工作</option>
-        <option value="学习">学习</option>
-        <option value="心情">心情</option>
-        <option value="其他">其他</option>
-      </select>
-      <select class="cat-select" id="priSelect" title="任务优先级">
-        <option value="high">高</option>
-        <option value="mid" selected>中</option>
-        <option value="low">低</option>
-      </select>
-      <button class="add-btn" id="addBtn">＋ 记下</button>
-    </div>
 
-    <div class="filters">
-      <button class="filter-btn active" data-filter="all">全部</button>
-      <button class="filter-btn" data-filter="active">进行中</button>
-      <button class="filter-btn" data-filter="done">已完成</button>
-    </div>
+      <nav class="nav">
+        <div class="nav-item active">
+          <span class="nav-icon">📋</span>
+          <span>待办清单</span>
+        </div>
+      </nav>
 
-    <div class="progress">
-      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
-      <div class="progress-label" id="progressLabel">0 / 0</div>
-    </div>
+      <div class="sidebar-foot">
+        <div class="foot-note">今天也要元气满满 ✨</div>
+      </div>
+    </aside>
 
-    <ul id="list"></ul>
+    <!-- 右侧主内容区 -->
+    <main class="main">
+      <div class="content">
+        <header class="page-head">
+          <h1>今日清单</h1>
+          <p class="date" id="dateText"></p>
+        </header>
 
-    <footer>
-      <span id="doneStamp"></span>
-      <button class="clear-btn" id="clearBtn">清空已完成</button>
-    </footer>
+        <!-- 励志语 -->
+        <section class="card quote-card">
+          <span class="quote-mark">“</span>
+          <span class="quote-text" id="quoteText">慢慢来，比较快。</span>
+          <span class="quote-mark">”</span>
+          <button class="quote-btn" id="quoteBtn" title="换一句">↻</button>
+        </section>
 
-  </main>
+        <!-- 添加任务 -->
+        <section class="card add-card">
+          <div class="add-row">
+            <input id="input" type="text" maxlength="80" placeholder="写下一件想做的事…" />
+            <select id="catSelect">
+              <option value="生活">生活</option>
+              <option value="工作">工作</option>
+              <option value="学习">学习</option>
+              <option value="心情">心情</option>
+              <option value="其他">其他</option>
+            </select>
+            <select id="priSelect" title="任务优先级">
+              <option value="high">高</option>
+              <option value="mid" selected>中</option>
+              <option value="low">低</option>
+            </select>
+            <button class="add-btn" id="addBtn">＋ 记下</button>
+          </div>
+        </section>
+
+        <!-- 任务列表 -->
+        <section class="card list-card">
+          <div class="list-head">
+            <div class="filters">
+              <button class="filter-btn active" data-filter="all">全部</button>
+              <button class="filter-btn" data-filter="active">进行中</button>
+              <button class="filter-btn" data-filter="done">已完成</button>
+            </div>
+            <span class="progress-label" id="progressLabel">0 / 0</span>
+          </div>
+
+          <div class="progress">
+            <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+          </div>
+
+          <ul id="list"></ul>
+
+          <footer>
+            <span id="doneStamp"></span>
+            <button class="clear-btn" id="clearBtn">清空已完成</button>
+          </footer>
+        </section>
+      </div>
+    </main>
+  </div>
 
 <script>
 (function () {
@@ -843,21 +513,6 @@
 
   let todos = load();
   let filter = 'all';
-
-  // 背景主题
-  const bg = $('bg');
-  const themeButtons = document.querySelectorAll('#themeSwitch button');
-  const THEME_KEY = 'techo-theme-v1';
-  const VALID_THEMES = ['day', 'sunset', 'night'];
-  let theme = VALID_THEMES.includes(localStorage.getItem(THEME_KEY)) ? localStorage.getItem(THEME_KEY) : 'day';
-  function applyTheme(t) {
-    theme = t;
-    bg.className = 'bg theme-' + t;
-    themeButtons.forEach((b) => b.classList.toggle('active', b.dataset.theme === t));
-    localStorage.setItem(THEME_KEY, t);
-  }
-  themeButtons.forEach((b) => b.addEventListener('click', () => applyTheme(b.dataset.theme)));
-  applyTheme(theme);
 
   // 励志话语
   const quotes = [
@@ -893,7 +548,6 @@
     const daySeed = Math.floor(Date.now() / 86400000);
     return (daySeed + Math.floor(Math.random() * quotes.length)) % quotes.length;
   }
-  // 每天一句固定的话，点击 ↻ 换一句
   showQuote(Math.floor(Date.now() / 86400000) % quotes.length);
   quoteBtn.addEventListener('click', () => showQuote(randomQuote()));
 
@@ -907,7 +561,6 @@
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       const arr = raw ? JSON.parse(raw) : [];
-      // 兼容旧数据：补齐 priority 与 createdAt 字段
       return arr.map((t) => ({
         ...t,
         priority: PRIORITY_ORDER[t.priority] != null ? t.priority : 'mid',
@@ -957,10 +610,10 @@
   }
 
   function compare(a, b) {
-    if (a.done !== b.done) return a.done ? 1 : -1;       // 未完成在前
+    if (a.done !== b.done) return a.done ? 1 : -1;
     const p = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
-    if (p !== 0) return p;                                // 高优先级在前
-    return (b.createdAt || 0) - (a.createdAt || 0);       // 新建在前
+    if (p !== 0) return p;
+    return (b.createdAt || 0) - (a.createdAt || 0);
   }
 
   function cyclePriority(id) {
@@ -1023,7 +676,6 @@
       li.innerHTML = '<span class="doodle">🖍️</span>' + msg;
       list.appendChild(li);
     } else {
-      // 按类组织：按分类分组，组内按优先级与状态排序
       const present = [...new Set(visible.map((t) => t.cat))];
       const cats = CATS.filter((c) => present.includes(c)).concat(
         present.filter((c) => !CATS.includes(c))
@@ -1061,7 +713,6 @@
       : (done > 0 ? '<span class="stamp-done">已完成 ' + done + ' 件</span>' : '');
   }
 
-  // 事件
   addBtn.addEventListener('click', addTodo);
   input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
   clearBtn.addEventListener('click', clearDone);
@@ -1074,7 +725,6 @@
       render();
     });
   });
-
 
   render();
 })();
