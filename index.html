@@ -1,0 +1,1360 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>手账待办 · 今日清单</title>
+<link rel="preconnect" href="https://fonts.googleapis.com" />
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=Patrick+Hand&display=swap" rel="stylesheet" />
+<style>
+  :root {
+    --paper: #fbf6ec;
+    --ink: #5a4632;
+    --ink-soft: #9b8a72;
+    --line: #e8ddc9;
+    --pink: #f4c6c2;
+    --pink-deep: #e58f88;
+    --mint: #bfe0d2;
+    --mint-deep: #6fbfa0;
+    --lavender: #dccdee;
+    --lavender-deep: #a98cc9;
+    --sky: #c5e0f2;
+    --sky-deep: #6fa8d4;
+    --mustard: #f4dc9a;
+    --mustard-deep: #d3a94e;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  html, body { height: 100%; }
+
+  body {
+    font-family: 'Ma Shan Zheng', 'Kaiti SC', 'STKaiti', 'KaiTi', 'Patrick Hand', cursive;
+    color: var(--ink);
+    min-height: 100vh;
+    padding: 40px 18px 80px;
+    display: flex;
+    align-items: flex-start;
+    justify-content: center;
+    overflow-x: hidden;
+  }
+
+  /* 散落的贴纸装饰 */
+  .sticker {
+    position: fixed;
+    z-index: 3;
+    font-size: 34px;
+    opacity: .85;
+    pointer-events: none;
+    filter: drop-shadow(0 2px 3px rgba(120,100,70,.18));
+    user-select: none;
+  }
+
+  /* ===== 新海诚「你的名字」风格背景 ===== */
+  .bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    overflow: hidden;
+    background: #16386f;
+  }
+  .scene {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    display: none;
+  }
+  .bg.theme-day .scene-day { display: block; }
+  .bg.theme-sunset .scene-sunset { display: block; }
+  .bg.theme-night .scene-night { display: block; }
+
+  /* 飘浮的光尘 */
+  .particles {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+  }
+  .particles i {
+    position: absolute;
+    bottom: -10px;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, .85);
+    filter: blur(1px);
+    opacity: 0;
+    animation: rise linear infinite;
+  }
+  @keyframes rise {
+    0% { transform: translateY(0); opacity: 0; }
+    8% { opacity: .7; }
+    85% { opacity: .35; }
+    100% { transform: translateY(-105vh); opacity: 0; }
+  }
+
+  /* 主题切换按钮 */
+  .theme-switch {
+    position: fixed;
+    top: 16px;
+    right: 16px;
+    z-index: 3;
+    display: flex;
+    gap: 4px;
+    background: rgba(255, 255, 255, .72);
+    border-radius: 26px;
+    padding: 6px 8px;
+    box-shadow: 0 2px 10px rgba(120, 95, 60, .2);
+    backdrop-filter: blur(6px);
+  }
+  .theme-switch button {
+    border: none;
+    background: transparent;
+    font-size: 20px;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    cursor: pointer;
+    line-height: 1;
+    transition: background .15s, transform .15s;
+  }
+  .theme-switch button:hover { transform: scale(1.15); }
+  .theme-switch button.active {
+    background: rgba(244, 198, 194, .6);
+    box-shadow: 0 0 0 2px #e58f88;
+  }
+
+  .page {
+    position: relative;
+    z-index: 1;
+    width: 100%;
+    max-width: 560px;
+    background:
+      linear-gradient(var(--paper), var(--paper)) padding-box,
+      repeating-linear-gradient(0deg, transparent, transparent 31px, #f0e6d2 31px, #f0e6d2 32px);
+    border-radius: 10px;
+    box-shadow:
+      0 2px 6px rgba(120,95,60,.12),
+      0 18px 45px rgba(120,95,60,.22);
+    padding: 26px 30px 34px;
+    border: 1px solid #eadfc8;
+  }
+
+  /* 左边装订孔 */
+  .page::before {
+    content: "";
+    position: absolute;
+    left: 12px; top: 0; bottom: 0;
+    width: 8px;
+    background-image: radial-gradient(circle at 4px 18px, #d9cbb0 3.2px, transparent 3.4px);
+    background-size: 8px 48px;
+    background-repeat: repeat-y;
+    opacity: .7;
+  }
+
+  /* 顶部和纸胶带 */
+  .tape {
+    position: absolute;
+    width: 130px;
+    height: 30px;
+    opacity: .9;
+    box-shadow: 0 1px 3px rgba(120,95,60,.15);
+  }
+  .tape.tl { top: -13px; left: -18px; transform: rotate(-38deg); background: rgba(244,198,194,.75); }
+  .tape.tr { top: -13px; right: -18px; transform: rotate(38deg); background: rgba(191,224,210,.75); }
+
+  header { text-align: center; margin-bottom: 14px; padding-left: 6px; }
+
+  .date {
+    display: inline-block;
+    font-size: 15px;
+    color: var(--ink-soft);
+    letter-spacing: 2px;
+    padding: 3px 14px;
+    background: rgba(244,220,154,.35);
+    border-radius: 20px;
+    margin-bottom: 4px;
+  }
+
+  h1 {
+    font-weight: normal;
+    font-size: 42px;
+    letter-spacing: 4px;
+    color: var(--ink);
+    line-height: 1.1;
+    text-shadow: 1px 1px 0 #fff;
+  }
+
+  .subtitle {
+    font-size: 15px;
+    color: var(--ink-soft);
+    letter-spacing: 1px;
+    margin-top: 2px;
+  }
+
+  /* 励志便签 */
+  .quote-card {
+    position: relative;
+    margin: 18px 8px 4px;
+    padding: 16px 42px 16px 18px;
+    background: #fdf4c8;
+    border-radius: 5px;
+    box-shadow: 0 3px 9px rgba(150,120,70,.18);
+    transform: rotate(-1.2deg);
+    font-size: 18px;
+    color: #7a6235;
+    letter-spacing: 1px;
+    line-height: 1.5;
+    transition: transform .2s;
+  }
+  .quote-card:hover { transform: rotate(0deg); }
+  .quote-card::before {
+    content: "";
+    position: absolute;
+    top: -10px; left: 50%;
+    transform: translateX(-50%) rotate(-3deg);
+    width: 76px; height: 20px;
+    background: rgba(197,224,242,.72);
+    border-radius: 2px;
+    opacity: .9;
+  }
+  .quote-mark {
+    font-size: 26px;
+    color: #d3a94e;
+    vertical-align: -4px;
+    margin-right: 2px;
+  }
+  .quote-btn {
+    position: absolute;
+    top: 8px; right: 8px;
+    width: 28px; height: 28px;
+    border: none;
+    background: rgba(255,255,255,.5);
+    border-radius: 50%;
+    font-size: 17px;
+    color: #b7955a;
+    cursor: pointer;
+    transition: transform .3s, background .15s;
+  }
+  .quote-btn:hover { background: rgba(255,255,255,.9); }
+  .quote-btn:active { transform: rotate(180deg); }
+
+  .tape-strip {
+    height: 8px;
+    margin: 16px 0 20px;
+    background: repeating-linear-gradient(45deg,
+      rgba(244,198,194,.6) 0 16px,
+      rgba(191,224,210,.6) 16px 32px,
+      rgba(220,205,238,.6) 32px 48px,
+      rgba(244,220,154,.6) 48px 64px);
+    border-radius: 4px;
+    opacity: .9;
+  }
+
+  /* 输入区 */
+  .add-row { display: flex; gap: 8px; align-items: stretch; }
+
+  .input-wrap {
+    position: relative;
+    flex: 1;
+  }
+  .input-wrap input {
+    width: 100%;
+    font-family: inherit;
+    font-size: 20px;
+    color: var(--ink);
+    background: rgba(255,255,255,.55);
+    border: 2px dashed #d9c6a4;
+    border-radius: 12px;
+    padding: 10px 14px 10px 12px;
+    outline: none;
+    transition: border-color .15s, background .15s;
+  }
+  .input-wrap input::placeholder { color: #c2b29a; }
+  .input-wrap input:focus { border-color: var(--pink-deep); background: rgba(255,255,255,.8); }
+
+  .cat-select {
+    font-family: inherit;
+    font-size: 17px;
+    color: var(--ink);
+    background: rgba(255,255,255,.55);
+    border: 2px dashed #d9c6a4;
+    border-radius: 12px;
+    padding: 0 10px;
+    cursor: pointer;
+    outline: none;
+  }
+
+  .add-btn {
+    font-family: inherit;
+    font-size: 20px;
+    color: #fff;
+    background: var(--pink-deep);
+    border: none;
+    border-radius: 12px;
+    padding: 8px 18px;
+    cursor: pointer;
+    box-shadow: 0 3px 0 #cf746e;
+    transform: translateY(0);
+    transition: transform .08s, box-shadow .08s;
+    letter-spacing: 1px;
+  }
+  .add-btn:hover { filter: brightness(1.04); }
+  .add-btn:active { transform: translateY(3px); box-shadow: 0 0 0 #cf746e; }
+
+  /* 分类筛选 */
+  .filters {
+    display: flex;
+    gap: 8px;
+    margin: 18px 0 6px;
+    flex-wrap: wrap;
+  }
+  .filter-btn {
+    font-family: inherit;
+    font-size: 16px;
+    color: var(--ink-soft);
+    background: transparent;
+    border: 2px solid transparent;
+    border-radius: 20px;
+    padding: 4px 14px;
+    cursor: pointer;
+    letter-spacing: 1px;
+    transition: all .15s;
+  }
+  .filter-btn:hover { color: var(--ink); }
+  .filter-btn.active {
+    color: var(--ink);
+    background: rgba(255,255,255,.6);
+    border-color: #e3d4b6;
+    box-shadow: inset 0 -2px 0 var(--pink);
+  }
+
+  /* 进度条 */
+  .progress {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin: 12px 0 6px;
+  }
+  .progress-bar {
+    flex: 1;
+    height: 12px;
+    background: #ece0c9;
+    border-radius: 20px;
+    overflow: hidden;
+    border: 1px solid #e2d3b6;
+  }
+  .progress-fill {
+    height: 100%;
+    width: 0%;
+    background: repeating-linear-gradient(45deg,
+      #f4c6c2 0 8px, #e8b4ae 8px 16px);
+    border-radius: 20px;
+    transition: width .4s ease;
+  }
+  .progress-label { font-size: 16px; color: var(--ink-soft); white-space: nowrap; }
+
+  /* 列表 */
+  ul { list-style: none; margin-top: 8px; }
+
+  li.todo {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 10px 12px 6px;
+    border-bottom: 1.5px dashed #e7d9bf;
+    animation: pop .25s ease;
+    position: relative;
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: translateY(-6px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+
+  .check {
+    flex: 0 0 auto;
+    width: 26px; height: 26px;
+    border: 2.5px solid #d3b78a;
+    border-radius: 50%;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(255,255,255,.5);
+    transition: all .18s;
+    font-size: 16px;
+    color: transparent;
+  }
+  .check:hover { border-color: var(--pink-deep); }
+
+  li.todo.done .check {
+    background: var(--pink);
+    border-color: var(--pink-deep);
+    color: #fff;
+    animation: stamp .3s ease;
+  }
+  @keyframes stamp {
+    0% { transform: scale(1.6); opacity: .4; }
+    60% { transform: scale(.92); }
+    100% { transform: scale(1); opacity: 1; }
+  }
+
+  .text { flex: 1; font-size: 21px; word-break: break-word; line-height: 1.35; }
+  li.todo.done .text {
+    color: #b9a98f;
+    text-decoration: line-through;
+    text-decoration-color: rgba(180,150,110,.6);
+  }
+
+  .tag {
+    flex: 0 0 auto;
+    font-size: 13px;
+    padding: 2px 10px;
+    border-radius: 20px;
+    letter-spacing: 1px;
+    box-shadow: 0 1px 2px rgba(120,95,60,.15);
+    transform: rotate(-2deg);
+  }
+  .tag.cat-生活 { background: var(--pink); color: #9c4a43; }
+  .tag.cat-工作 { background: var(--sky); color: #3f6f96; }
+  .tag.cat-学习 { background: var(--mint); color: #3d8068; }
+  .tag.cat-心情 { background: var(--lavender); color: #7a5c9e; }
+  .tag.cat-其他 { background: var(--mustard); color: #946f1f; }
+
+  /* 优先级标记 */
+  .pri {
+    flex: 0 0 auto;
+    width: 22px; height: 22px;
+    line-height: 22px;
+    text-align: center;
+    font-size: 13px;
+    color: #fff;
+    border-radius: 50%;
+    cursor: pointer;
+    user-select: none;
+    box-shadow: 0 1px 2px rgba(120,95,60,.18);
+    transition: transform .15s;
+  }
+  .pri:hover { transform: scale(1.18); }
+  .pri.p-high { background: var(--pink-deep); }
+  .pri.p-mid  { background: var(--mustard-deep); }
+  .pri.p-low  { background: var(--sky-deep); }
+  li.todo.done .pri { opacity: .55; }
+
+  /* 分类分组 */
+  .cat-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 18px 4px 7px;
+    border-bottom: 2px solid #e7d9bf;
+  }
+  .cat-group:first-child { padding-top: 8px; }
+  .cat-group-title {
+    font-size: 20px;
+    letter-spacing: 2px;
+    color: var(--ink);
+    text-shadow: 1px 1px 0 #fff;
+  }
+  .cat-group-count {
+    font-size: 13px;
+    color: var(--ink-soft);
+    background: rgba(255,255,255,.55);
+    border-radius: 12px;
+    padding: 1px 9px;
+    letter-spacing: 1px;
+  }
+
+  .del {
+    flex: 0 0 auto;
+    width: 28px; height: 28px;
+    border: none;
+    background: transparent;
+    font-size: 18px;
+    color: #c6b397;
+    cursor: pointer;
+    border-radius: 50%;
+    opacity: 0;
+    transition: opacity .15s, background .15s;
+  }
+  li.todo:hover .del { opacity: 1; }
+  .del:hover { background: rgba(229,143,136,.18); color: var(--pink-deep); }
+
+  .empty {
+    text-align: center;
+    color: #bfae90;
+    font-size: 18px;
+    padding: 34px 0;
+    letter-spacing: 1px;
+  }
+  .empty .doodle { font-size: 52px; display: block; margin-bottom: 8px; }
+
+  footer {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-top: 18px;
+    padding-top: 12px;
+    border-top: 2px dotted #e0d2b6;
+  }
+  .clear-btn {
+    font-family: inherit;
+    font-size: 15px;
+    color: var(--ink-soft);
+    background: transparent;
+    border: none;
+    cursor: pointer;
+    text-decoration: underline dotted;
+    letter-spacing: 1px;
+  }
+  .clear-btn:hover { color: var(--pink-deep); }
+
+  .stamp-done {
+    display: inline-block;
+    font-size: 15px;
+    color: var(--pink-deep);
+    border: 2px solid var(--pink-deep);
+    border-radius: 8px;
+    padding: 1px 10px;
+    transform: rotate(-6deg);
+    letter-spacing: 2px;
+    background: rgba(244,198,194,.15);
+  }
+
+  /* ===== 本周计划 ===== */
+  .week { margin-top: 26px; padding-top: 18px; border-top: 2px dotted #e0d2b6; }
+
+  .week-head {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+  }
+  .week-title {
+    font-weight: normal;
+    font-size: 24px;
+    letter-spacing: 2px;
+    color: var(--ink);
+    text-shadow: 1px 1px 0 #fff;
+  }
+  .week-nav { display: flex; align-items: center; gap: 8px; }
+  .week-nav button {
+    font-family: inherit;
+    width: 28px; height: 28px;
+    border: 2px dashed #d9c6a4;
+    background: rgba(255,255,255,.55);
+    border-radius: 50%;
+    color: var(--ink-soft);
+    font-size: 18px;
+    line-height: 1;
+    cursor: pointer;
+    transition: all .15s;
+  }
+  .week-nav button:hover { color: var(--pink-deep); border-color: var(--pink-deep); }
+  .week-range { font-size: 14px; color: var(--ink-soft); letter-spacing: 1px; white-space: nowrap; }
+
+  .week-scroll { overflow-x: auto; padding-bottom: 6px; margin: 0 -6px; padding-left: 6px; padding-right: 6px; }
+  .week-grid {
+    display: grid;
+    grid-template-columns: repeat(7, minmax(116px, 1fr));
+    gap: 8px;
+  }
+
+  .day-col {
+    background: rgba(255,255,255,.42);
+    border: 1.5px solid #e7d9bf;
+    border-radius: 10px;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 150px;
+  }
+  .day-col.today { box-shadow: 0 0 0 2.5px var(--pink-deep); }
+
+  .day-head {
+    padding: 6px 4px 5px;
+    text-align: center;
+    color: #fff;
+    letter-spacing: 1px;
+    line-height: 1.15;
+  }
+  .day-head .day-name { font-size: 16px; }
+  .day-head .day-date { display: block; font-size: 12px; opacity: .92; }
+  .day-col.c0 .day-head { background: var(--pink-deep); }
+  .day-col.c1 .day-head { background: var(--sky-deep); }
+  .day-col.c2 .day-head { background: var(--mint-deep); }
+  .day-col.c3 .day-head { background: var(--lavender-deep); }
+  .day-col.c4 .day-head { background: var(--mustard-deep); }
+  .day-col.c5 .day-head { background: var(--lavender-deep); }
+  .day-col.c6 .day-head { background: var(--sky-deep); }
+
+  .day-list { flex: 1; padding: 5px 6px; }
+  .day-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    padding: 3px 0;
+    font-size: 14px;
+    line-height: 1.25;
+    word-break: break-word;
+    animation: pop .2s ease;
+  }
+  .day-item .d-check {
+    flex: 0 0 auto;
+    width: 15px; height: 15px;
+    margin-top: 1px;
+    border: 1.8px solid #d3b78a;
+    border-radius: 50%;
+    cursor: pointer;
+    font-size: 10px;
+    color: transparent;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: all .15s;
+  }
+  .day-item.done .d-check { background: var(--pink); border-color: var(--pink-deep); color: #fff; }
+  .day-item .d-text { flex: 1; }
+  .day-item.done .d-text {
+    color: #b9a98f;
+    text-decoration: line-through;
+    text-decoration-color: rgba(180,150,110,.6);
+  }
+  .day-item .d-del {
+    flex: 0 0 auto;
+    border: none;
+    background: transparent;
+    font-size: 12px;
+    color: #c6b397;
+    cursor: pointer;
+    border-radius: 50%;
+    padding: 0;
+    opacity: 0;
+    transition: opacity .15s;
+  }
+  .day-item:hover .d-del { opacity: 1; }
+  .day-item .d-del:hover { color: var(--pink-deep); }
+
+  .day-add { border-top: 1.5px dashed #e7d9bf; padding: 4px 6px; }
+  .day-add input {
+    width: 100%;
+    font-family: inherit;
+    font-size: 14px;
+    color: var(--ink);
+    background: transparent;
+    border: none;
+    outline: none;
+    padding: 3px 0;
+  }
+  .day-add input::placeholder { color: #c2b29a; }
+
+  @media (max-width: 480px) {
+    .page { padding: 22px 18px 30px; }
+    h1 { font-size: 34px; }
+    .add-row { flex-wrap: wrap; }
+    .cat-select { padding: 8px; }
+    .add-btn { flex: 1; }
+  }
+</style>
+</head>
+<body>
+  <div class="bg theme-day" id="bg">
+    <!-- 白昼：蓝天 · 积云 · 光束 -->
+    <svg class="scene scene-day" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="skyDay" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#123a72"/>
+          <stop offset="0.28" stop-color="#2a6baa"/>
+          <stop offset="0.55" stop-color="#5aa5d8"/>
+          <stop offset="0.78" stop-color="#a3d2ef"/>
+          <stop offset="0.92" stop-color="#d6ecfb"/>
+          <stop offset="1" stop-color="#eef9ff"/>
+        </linearGradient>
+        <radialGradient id="sunGlowDay" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stop-color="#fffef2" stop-opacity="1"/>
+          <stop offset="0.2" stop-color="#fff3c2" stop-opacity="0.9"/>
+          <stop offset="0.5" stop-color="#ffe9a0" stop-opacity="0.4"/>
+          <stop offset="1" stop-color="#ffe9a0" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="cloudFill" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff"/>
+          <stop offset="0.55" stop-color="#f2f7fd"/>
+          <stop offset="1" stop-color="#c9d9ec"/>
+        </linearGradient>
+        <linearGradient id="cloudFillHaze" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#ffffff"/>
+          <stop offset="1" stop-color="#b7d4ec"/>
+        </linearGradient>
+        <filter id="blur2"><feGaussianBlur stdDeviation="2.5"/></filter>
+        <filter id="blur6"><feGaussianBlur stdDeviation="6"/></filter>
+        <filter id="blur40"><feGaussianBlur stdDeviation="40"/></filter>
+        <g id="cumulus">
+          <ellipse cx="-70" cy="-18" rx="95" ry="58"/>
+          <ellipse cx="10" cy="-46" rx="128" ry="82"/>
+          <ellipse cx="132" cy="-30" rx="104" ry="62"/>
+          <ellipse cx="218" cy="-8" rx="78" ry="44"/>
+          <rect x="-118" y="-22" width="370" height="86" rx="43"/>
+        </g>
+        <g id="cumulusSmall">
+          <ellipse cx="-45" cy="-12" rx="62" ry="38"/>
+          <ellipse cx="8" cy="-28" rx="80" ry="50"/>
+          <ellipse cx="70" cy="-16" rx="60" ry="36"/>
+          <rect x="-78" y="-12" width="220" height="50" rx="25"/>
+        </g>
+      </defs>
+      <rect width="1600" height="900" fill="url(#skyDay)"/>
+      <g>
+        <circle cx="1180" cy="210" r="500" fill="url(#sunGlowDay)"/>
+        <circle cx="1180" cy="210" r="60" fill="#fffdf0" filter="url(#blur6)"/>
+        <g fill="#fff4cf" opacity="0.22" filter="url(#blur40)">
+          <polygon points="1180,210 700,900 940,900"/>
+          <polygon points="1180,210 1000,900 1260,900"/>
+          <polygon points="1180,210 1320,900 1600,900"/>
+        </g>
+      </g>
+      <g filter="url(#blur2)">
+        <use href="#cumulus" fill="url(#cloudFill)" transform="translate(250,330) scale(1.05)"/>
+        <use href="#cumulus" fill="url(#cloudFill)" transform="translate(1120,430) scale(1.2)"/>
+        <use href="#cumulusSmall" fill="url(#cloudFill)" transform="translate(700,260) scale(0.9)"/>
+        <use href="#cumulusSmall" fill="url(#cloudFill)" transform="translate(1450,300) scale(0.8)"/>
+      </g>
+      <g fill="url(#cloudFillHaze)" opacity="0.55" filter="url(#blur6)">
+        <ellipse cx="200" cy="640" rx="300" ry="36"/>
+        <ellipse cx="820" cy="620" rx="420" ry="40"/>
+        <ellipse cx="1400" cy="650" rx="340" ry="34"/>
+      </g>
+      <g>
+        <path d="M0,735 L150,610 L320,720 L480,575 L660,705 L820,595 L1000,710 L1180,565 L1360,705 L1520,615 L1600,700 L1600,900 L0,900 Z" fill="#6f9fd0" opacity="0.75"/>
+        <path d="M0,805 L190,690 L390,800 L570,665 L770,800 L970,700 L1170,800 L1370,680 L1600,795 L1600,900 L0,900 Z" fill="#3d6ca6" opacity="0.95"/>
+        <path d="M0,870 L260,780 L520,865 L800,760 L1080,865 L1340,780 L1600,860 L1600,900 L0,900 Z" fill="#28507f"/>
+      </g>
+    </svg>
+
+    <!-- 黄昏：晚霞 · 落日 -->
+    <svg class="scene scene-sunset" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="skySunset" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#26386e"/>
+          <stop offset="0.35" stop-color="#7a5a8f"/>
+          <stop offset="0.6" stop-color="#c97d86"/>
+          <stop offset="0.78" stop-color="#f0a06a"/>
+          <stop offset="0.92" stop-color="#f7c97c"/>
+          <stop offset="1" stop-color="#fbe2a0"/>
+        </linearGradient>
+        <radialGradient id="sunGlowSunset" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stop-color="#fff7d8" stop-opacity="1"/>
+          <stop offset="0.25" stop-color="#ffd58a" stop-opacity="0.9"/>
+          <stop offset="0.6" stop-color="#ff9e6e" stop-opacity="0.35"/>
+          <stop offset="1" stop-color="#ff8f6b" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="cloudFillSunset" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#fff4e6"/>
+          <stop offset="0.6" stop-color="#fbd0c0"/>
+          <stop offset="1" stop-color="#c98fb4"/>
+        </linearGradient>
+        <filter id="blur2s"><feGaussianBlur stdDeviation="2.5"/></filter>
+        <filter id="blur6s"><feGaussianBlur stdDeviation="6"/></filter>
+        <filter id="blur40s"><feGaussianBlur stdDeviation="40"/></filter>
+        <g id="cumulusS">
+          <ellipse cx="-70" cy="-18" rx="95" ry="58"/>
+          <ellipse cx="10" cy="-46" rx="128" ry="82"/>
+          <ellipse cx="132" cy="-30" rx="104" ry="62"/>
+          <ellipse cx="218" cy="-8" rx="78" ry="44"/>
+          <rect x="-118" y="-22" width="370" height="86" rx="43"/>
+        </g>
+      </defs>
+      <rect width="1600" height="900" fill="url(#skySunset)"/>
+      <g>
+        <circle cx="800" cy="660" r="620" fill="url(#sunGlowSunset)"/>
+        <circle cx="800" cy="650" r="120" fill="#fff6d8" filter="url(#blur6s)"/>
+        <g fill="#ffe7ae" opacity="0.25" filter="url(#blur40s)">
+          <polygon points="800,660 200,900 460,900"/>
+          <polygon points="800,660 560,900 1040,900"/>
+          <polygon points="800,660 1180,900 1560,900"/>
+        </g>
+      </g>
+      <g filter="url(#blur2s)">
+        <use href="#cumulusS" fill="url(#cloudFillSunset)" transform="translate(240,380) scale(1.1)"/>
+        <use href="#cumulusS" fill="url(#cloudFillSunset)" transform="translate(1150,330) scale(1.2)"/>
+        <use href="#cumulusS" fill="url(#cloudFillSunset)" transform="translate(700,240) scale(0.85)"/>
+      </g>
+      <g>
+        <path d="M0,800 L160,700 L340,790 L520,660 L720,790 L900,690 L1120,800 L1320,700 L1600,790 L1600,900 L0,900 Z" fill="#5a3f6e"/>
+        <path d="M0,850 L200,760 L420,840 L640,730 L860,840 L1080,760 L1300,850 L1500,760 L1600,840 L1600,900 L0,900 Z" fill="#3a2a55"/>
+      </g>
+    </svg>
+
+    <!-- 星空：彗星 · 月亮 -->
+    <svg class="scene scene-night" viewBox="0 0 1600 900" preserveAspectRatio="xMidYMid slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <linearGradient id="skyNight" x1="0" y1="0" x2="0" y2="1">
+          <stop offset="0" stop-color="#050b22"/>
+          <stop offset="0.4" stop-color="#0f1c40"/>
+          <stop offset="0.7" stop-color="#1a2c58"/>
+          <stop offset="1" stop-color="#29406e"/>
+        </linearGradient>
+        <radialGradient id="moonGlow" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stop-color="#f4f8ff" stop-opacity="0.9"/>
+          <stop offset="0.4" stop-color="#cfe0f5" stop-opacity="0.35"/>
+          <stop offset="1" stop-color="#cfe0f5" stop-opacity="0"/>
+        </radialGradient>
+        <linearGradient id="cometTail" x1="1" y1="0" x2="0" y2="0">
+          <stop offset="0" stop-color="#dff3ff"/>
+          <stop offset="0.5" stop-color="#9fc9f0"/>
+          <stop offset="1" stop-color="#5f8fd0" stop-opacity="0"/>
+        </linearGradient>
+        <radialGradient id="cometHead" cx="0.5" cy="0.5" r="0.5">
+          <stop offset="0" stop-color="#ffffff"/>
+          <stop offset="0.3" stop-color="#dff3ff"/>
+          <stop offset="1" stop-color="#9fc9f0" stop-opacity="0"/>
+        </radialGradient>
+        <filter id="blur2n"><feGaussianBlur stdDeviation="2"/></filter>
+        <filter id="blur8n"><feGaussianBlur stdDeviation="8"/></filter>
+        <filter id="blur30n"><feGaussianBlur stdDeviation="30"/></filter>
+      </defs>
+      <rect width="1600" height="900" fill="url(#skyNight)"/>
+      <g fill="#ffffff">
+        <circle cx="80" cy="60" r="1.6" opacity="0.9"/>
+        <circle cx="220" cy="140" r="1.2" opacity="0.7"/>
+        <circle cx="340" cy="40" r="1.8" opacity="0.95"/>
+        <circle cx="480" cy="180" r="1.1" opacity="0.6"/>
+        <circle cx="600" cy="90" r="1.5" opacity="0.8"/>
+        <circle cx="720" cy="30" r="1.3" opacity="0.7"/>
+        <circle cx="860" cy="150" r="1.7" opacity="0.9"/>
+        <circle cx="990" cy="60" r="1.2" opacity="0.65"/>
+        <circle cx="1120" cy="190" r="1.5" opacity="0.8"/>
+        <circle cx="1260" cy="40" r="1.4" opacity="0.7"/>
+        <circle cx="1420" cy="120" r="1.8" opacity="0.9"/>
+        <circle cx="1550" cy="70" r="1.3" opacity="0.7"/>
+        <circle cx="150" cy="260" r="1.1" opacity="0.5"/>
+        <circle cx="300" cy="320" r="1.4" opacity="0.7"/>
+        <circle cx="500" cy="280" r="1.0" opacity="0.5"/>
+        <circle cx="660" cy="340" r="1.6" opacity="0.8"/>
+        <circle cx="820" cy="250" r="1.1" opacity="0.55"/>
+        <circle cx="980" cy="330" r="1.4" opacity="0.7"/>
+        <circle cx="1160" cy="270" r="1.0" opacity="0.5"/>
+        <circle cx="1340" cy="300" r="1.5" opacity="0.75"/>
+        <circle cx="1500" cy="220" r="1.2" opacity="0.6"/>
+        <circle cx="70" cy="430" r="1.2" opacity="0.6"/>
+        <circle cx="260" cy="470" r="1.0" opacity="0.45"/>
+        <circle cx="440" cy="400" r="1.3" opacity="0.6"/>
+        <circle cx="620" cy="460" r="1.1" opacity="0.5"/>
+        <circle cx="800" cy="410" r="1.4" opacity="0.65"/>
+        <circle cx="1000" cy="450" r="1.0" opacity="0.5"/>
+        <circle cx="1200" cy="390" r="1.3" opacity="0.6"/>
+        <circle cx="1400" cy="440" r="1.1" opacity="0.55"/>
+        <circle cx="1580" cy="380" r="1.2" opacity="0.6"/>
+        <circle cx="400" cy="560" r="1.0" opacity="0.4"/>
+        <circle cx="760" cy="540" r="1.2" opacity="0.5"/>
+        <circle cx="1100" cy="560" r="1.0" opacity="0.45"/>
+      </g>
+      <g>
+        <circle cx="230" cy="170" r="260" fill="url(#moonGlow)"/>
+        <circle cx="230" cy="170" r="46" fill="#eef4ff" filter="url(#blur2n)"/>
+      </g>
+      <g>
+        <path d="M1245,75 C1060,135 850,215 590,300 C360,372 180,415 60,425 L30,385 C180,375 370,330 590,258 C850,178 1060,100 1245,45 Z" fill="url(#cometTail)" filter="url(#blur8n)"/>
+        <path d="M1245,75 C1080,150 890,235 640,300 C420,360 260,392 120,395 L100,360 C260,356 430,322 640,262 C890,200 1080,115 1245,60 Z" fill="url(#cometTail)" opacity="0.6" filter="url(#blur8n)"/>
+        <circle cx="1245" cy="75" r="120" fill="url(#cometHead)" filter="url(#blur8n)"/>
+        <circle cx="1245" cy="75" r="20" fill="#ffffff"/>
+      </g>
+      <g>
+        <path d="M0,800 L160,700 L340,790 L520,660 L720,790 L900,690 L1120,800 L1320,700 L1600,790 L1600,900 L0,900 Z" fill="#0a1730"/>
+        <path d="M0,860 L220,760 L460,850 L700,740 L960,850 L1220,760 L1440,850 L1600,780 L1600,900 L0,900 Z" fill="#060f20"/>
+      </g>
+    </svg>
+
+    <div class="particles">
+      <i style="left:8%; width:5px; height:5px; animation-duration:16s; animation-delay:-3s;"></i>
+      <i style="left:22%; width:3px; height:3px; animation-duration:13s; animation-delay:-7s;"></i>
+      <i style="left:35%; width:6px; height:6px; animation-duration:19s; animation-delay:-2s;"></i>
+      <i style="left:48%; width:4px; height:4px; animation-duration:15s; animation-delay:-9s;"></i>
+      <i style="left:61%; width:3px; height:3px; animation-duration:12s; animation-delay:-5s;"></i>
+      <i style="left:73%; width:5px; height:5px; animation-duration:18s; animation-delay:-1s;"></i>
+      <i style="left:85%; width:4px; height:4px; animation-duration:14s; animation-delay:-8s;"></i>
+      <i style="left:94%; width:6px; height:6px; animation-duration:20s; animation-delay:-4s;"></i>
+      <i style="left:16%; width:3px; height:3px; animation-duration:17s; animation-delay:-11s;"></i>
+      <i style="left:55%; width:3px; height:3px; animation-duration:15s; animation-delay:-13s;"></i>
+    </div>
+  </div>
+
+  <div class="theme-switch" id="themeSwitch">
+    <button data-theme="day" title="白昼·蓝天">☀️</button>
+    <button data-theme="sunset" title="黄昏·晚霞">🌇</button>
+    <button data-theme="night" title="星空·彗星">☄️</button>
+  </div>
+
+  <span class="sticker" style="top:6%; left:6%; transform:rotate(-12deg);">🌸</span>
+  <span class="sticker" style="top:30%; right:6%; transform:rotate(10deg);">⭐</span>
+  <span class="sticker" style="bottom:10%; left:8%; transform:rotate(8deg);">🍃</span>
+  <span class="sticker" style="bottom:6%; right:6%; transform:rotate(-14deg);">🧸</span>
+
+  <main class="page">
+    <span class="tape tl"></span>
+    <span class="tape tr"></span>
+
+    <header>
+      <div class="date" id="dateText"></div>
+      <h1>今日清单</h1>
+      <div class="subtitle">记录生活 · 慢慢完成 ✍️</div>
+    </header>
+
+    <div class="quote-card">
+      <span class="quote-mark">“</span><span id="quoteText">慢慢来，比较快。</span><span>”</span>
+      <button class="quote-btn" id="quoteBtn" title="换一句">↻</button>
+    </div>
+
+    <div class="tape-strip"></div>
+
+    <div class="add-row">
+      <div class="input-wrap">
+        <input id="input" type="text" maxlength="80" placeholder="写下一件想做的事…" />
+      </div>
+      <select class="cat-select" id="catSelect">
+        <option value="生活">生活</option>
+        <option value="工作">工作</option>
+        <option value="学习">学习</option>
+        <option value="心情">心情</option>
+        <option value="其他">其他</option>
+      </select>
+      <select class="cat-select" id="priSelect" title="任务优先级">
+        <option value="high">高</option>
+        <option value="mid" selected>中</option>
+        <option value="low">低</option>
+      </select>
+      <button class="add-btn" id="addBtn">＋ 记下</button>
+    </div>
+
+    <div class="filters">
+      <button class="filter-btn active" data-filter="all">全部</button>
+      <button class="filter-btn" data-filter="active">进行中</button>
+      <button class="filter-btn" data-filter="done">已完成</button>
+    </div>
+
+    <div class="progress">
+      <div class="progress-bar"><div class="progress-fill" id="progressFill"></div></div>
+      <div class="progress-label" id="progressLabel">0 / 0</div>
+    </div>
+
+    <ul id="list"></ul>
+
+    <footer>
+      <span id="doneStamp"></span>
+      <button class="clear-btn" id="clearBtn">清空已完成</button>
+    </footer>
+
+    <section class="week">
+      <div class="week-head">
+        <h2 class="week-title">本周计划</h2>
+        <div class="week-nav">
+          <button id="weekPrev" title="上一周">‹</button>
+          <span class="week-range" id="weekRange"></span>
+          <button id="weekNext" title="下一周">›</button>
+        </div>
+      </div>
+      <div class="week-scroll">
+        <div class="week-grid" id="weekGrid"></div>
+      </div>
+    </section>
+  </main>
+
+<script>
+(function () {
+  const STORAGE_KEY = 'techo-todos-v1';
+
+  const $ = (id) => document.getElementById(id);
+  const input = $('input');
+  const catSelect = $('catSelect');
+  const addBtn = $('addBtn');
+  const list = $('list');
+  const progressFill = $('progressFill');
+  const progressLabel = $('progressLabel');
+  const doneStamp = $('doneStamp');
+  const clearBtn = $('clearBtn');
+  const priSelect = $('priSelect');
+
+  const CATS = ['生活', '工作', '学习', '心情', '其他'];
+  const PRIORITY_ORDER = { high: 0, mid: 1, low: 2 };
+  const PRIORITIES = [
+    { key: 'high', label: '高', title: '优先：高' },
+    { key: 'mid',  label: '中', title: '优先：中' },
+    { key: 'low',  label: '低', title: '优先：低' }
+  ];
+
+  let todos = load();
+  let filter = 'all';
+
+  // 背景主题
+  const bg = $('bg');
+  const themeButtons = document.querySelectorAll('#themeSwitch button');
+  const THEME_KEY = 'techo-theme-v1';
+  const VALID_THEMES = ['day', 'sunset', 'night'];
+  let theme = VALID_THEMES.includes(localStorage.getItem(THEME_KEY)) ? localStorage.getItem(THEME_KEY) : 'day';
+  function applyTheme(t) {
+    theme = t;
+    bg.className = 'bg theme-' + t;
+    themeButtons.forEach((b) => b.classList.toggle('active', b.dataset.theme === t));
+    localStorage.setItem(THEME_KEY, t);
+  }
+  themeButtons.forEach((b) => b.addEventListener('click', () => applyTheme(b.dataset.theme)));
+  applyTheme(theme);
+
+  // 励志话语
+  const quotes = [
+    '慢慢来，比较快。',
+    '把今天过好，就是对未来最好的准备。',
+    '你只管努力，时间会给你答案。',
+    '每天进步一点点，就是最好的坚持。',
+    '生活明朗，万物可爱。',
+    '别怕路远，就怕原地踏步。',
+    '做好每一件小事，就是了不起的大事。',
+    '眼里有光，心中有梦。',
+    '今天也要元气满满呀！',
+    '种一棵树最好的时间是十年前，其次是现在。',
+    '路虽远，行则将至；事虽难，做则必成。',
+    '你所热爱的，就是你的生活。',
+    '心向阳光，一路生花。',
+    '凡是过往，皆为序章。',
+    '越努力，越幸运。',
+    '慢慢走，也能走到想去的地方。',
+    '不辜负每一个清晨，就是对日子最好的告白。',
+    '先完成，再完美。',
+    '心中有海，眼里有光，脚下有路。',
+    '每一份坚持，都会在未来的某天开花结果。'
+  ];
+
+  const quoteText = $('quoteText');
+  const quoteBtn = $('quoteBtn');
+
+  function showQuote(index) {
+    quoteText.textContent = quotes[index];
+  }
+  function randomQuote() {
+    const daySeed = Math.floor(Date.now() / 86400000);
+    return (daySeed + Math.floor(Math.random() * quotes.length)) % quotes.length;
+  }
+  // 每天一句固定的话，点击 ↻ 换一句
+  showQuote(Math.floor(Date.now() / 86400000) % quotes.length);
+  quoteBtn.addEventListener('click', () => showQuote(randomQuote()));
+
+  // 日期
+  const now = new Date();
+  const week = ['日', '一', '二', '三', '四', '五', '六'][now.getDay()];
+  $('dateText').textContent =
+    now.getFullYear() + ' 年 ' + (now.getMonth() + 1) + ' 月 ' + now.getDate() + ' 日 · 星期' + week;
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      const arr = raw ? JSON.parse(raw) : [];
+      // 兼容旧数据：补齐 priority 与 createdAt 字段
+      return arr.map((t) => ({
+        ...t,
+        priority: PRIORITY_ORDER[t.priority] != null ? t.priority : 'mid',
+        createdAt: t.createdAt || 0
+      }));
+    } catch (e) {
+      return [];
+    }
+  }
+
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(todos));
+  }
+
+  function addTodo() {
+    const text = input.value.trim();
+    if (!text) { input.focus(); return; }
+    todos.unshift({
+      id: Date.now() + Math.random().toString(36).slice(2),
+      text: text,
+      cat: catSelect.value,
+      priority: priSelect.value,
+      done: false,
+      createdAt: Date.now()
+    });
+    input.value = '';
+    input.focus();
+    save();
+    render();
+  }
+
+  function toggle(id) {
+    const t = todos.find((x) => x.id === id);
+    if (t) { t.done = !t.done; save(); render(); }
+  }
+
+  function remove(id) {
+    todos = todos.filter((x) => x.id !== id);
+    save();
+    render();
+  }
+
+  function clearDone() {
+    todos = todos.filter((x) => !x.done);
+    save();
+    render();
+  }
+
+  function compare(a, b) {
+    if (a.done !== b.done) return a.done ? 1 : -1;       // 未完成在前
+    const p = PRIORITY_ORDER[a.priority] - PRIORITY_ORDER[b.priority];
+    if (p !== 0) return p;                                // 高优先级在前
+    return (b.createdAt || 0) - (a.createdAt || 0);       // 新建在前
+  }
+
+  function cyclePriority(id) {
+    const t = todos.find((x) => x.id === id);
+    if (!t) return;
+    const order = ['high', 'mid', 'low'];
+    t.priority = order[(order.indexOf(t.priority) + 1) % order.length];
+    save();
+    render();
+  }
+
+  function buildItem(t) {
+    const li = document.createElement('li');
+    li.className = 'todo' + (t.done ? ' done' : '');
+
+    const check = document.createElement('span');
+    check.className = 'check';
+    check.textContent = t.done ? '✓' : '';
+    check.title = t.done ? '标记为未完成' : '标记为完成';
+    check.addEventListener('click', () => toggle(t.id));
+
+    const text = document.createElement('span');
+    text.className = 'text';
+    text.textContent = t.text;
+
+    const p = PRIORITIES.find((x) => x.key === t.priority) || PRIORITIES[1];
+    const pri = document.createElement('span');
+    pri.className = 'pri p-' + p.key;
+    pri.textContent = p.label;
+    pri.title = p.title + ' · 点击切换';
+    pri.addEventListener('click', () => cyclePriority(t.id));
+
+    const tag = document.createElement('span');
+    tag.className = 'tag cat-' + t.cat;
+    tag.textContent = t.cat;
+
+    const del = document.createElement('button');
+    del.className = 'del';
+    del.textContent = '✕';
+    del.title = '删除';
+    del.addEventListener('click', () => remove(t.id));
+
+    li.append(check, text, pri, tag, del);
+    return li;
+  }
+
+  function render() {
+    const visible = todos.filter((t) =>
+      filter === 'all' ? true : filter === 'done' ? t.done : !t.done
+    );
+
+    list.innerHTML = '';
+
+    if (visible.length === 0) {
+      const li = document.createElement('li');
+      li.className = 'empty';
+      const msg = todos.length === 0
+        ? '空空如也～ 写下第一件想做的事吧'
+        : (filter === 'done' ? '还没有完成的事项 🌱' : '这里暂时没有事项 ✨');
+      li.innerHTML = '<span class="doodle">🖍️</span>' + msg;
+      list.appendChild(li);
+    } else {
+      // 按类组织：按分类分组，组内按优先级与状态排序
+      const present = [...new Set(visible.map((t) => t.cat))];
+      const cats = CATS.filter((c) => present.includes(c)).concat(
+        present.filter((c) => !CATS.includes(c))
+      );
+      cats.forEach((cat) => {
+        const items = visible.filter((t) => t.cat === cat).sort(compare);
+        if (items.length === 0) return;
+
+        const head = document.createElement('li');
+        head.className = 'cat-group';
+        const title = document.createElement('span');
+        title.className = 'cat-group-title';
+        title.textContent = cat;
+        const count = document.createElement('span');
+        count.className = 'cat-group-count';
+        count.textContent = items.length;
+        head.append(title, count);
+        list.appendChild(head);
+
+        items.forEach((t) => list.appendChild(buildItem(t)));
+      });
+    }
+
+    updateProgress();
+  }
+
+  function updateProgress() {
+    const total = todos.length;
+    const done = todos.filter((t) => t.done).length;
+    const pct = total ? Math.round((done / total) * 100) : 0;
+    progressFill.style.width = pct + '%';
+    progressLabel.textContent = done + ' / ' + total;
+    doneStamp.innerHTML = total && done === total
+      ? '<span class="stamp-done">全部完成 🎉</span>'
+      : (done > 0 ? '<span class="stamp-done">已完成 ' + done + ' 件</span>' : '');
+  }
+
+  // 事件
+  addBtn.addEventListener('click', addTodo);
+  input.addEventListener('keydown', (e) => { if (e.key === 'Enter') addTodo(); });
+  clearBtn.addEventListener('click', clearDone);
+
+  document.querySelectorAll('.filter-btn').forEach((btn) => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.filter-btn').forEach((b) => b.classList.remove('active'));
+      btn.classList.add('active');
+      filter = btn.dataset.filter;
+      render();
+    });
+  });
+
+  // ===== 本周计划 =====
+  const WEEK_KEY = 'techo-week-plan-v1';
+  const DAY_NAMES = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+  const weekGrid = $('weekGrid');
+  const weekRange = $('weekRange');
+  const weekPrev = $('weekPrev');
+  const weekNext = $('weekNext');
+
+  let weekOffset = 0; // 0 = 本周，-1 = 上周，1 = 下周
+
+  function loadWeek() {
+    try {
+      const raw = localStorage.getItem(WEEK_KEY);
+      return raw ? JSON.parse(raw) : {};
+    } catch (e) { return {}; }
+  }
+  let weekPlan = loadWeek();
+
+  function saveWeek() {
+    localStorage.setItem(WEEK_KEY, JSON.stringify(weekPlan));
+  }
+
+  function dateKey(d) {
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return y + '-' + m + '-' + day;
+  }
+
+  function mondayOf(date) {
+    const d = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const wd = d.getDay();
+    d.setDate(d.getDate() - (wd === 0 ? 6 : wd - 1));
+    return d;
+  }
+
+  function weekDays(offset) {
+    const monday = mondayOf(new Date());
+    monday.setDate(monday.getDate() + offset * 7);
+    const days = [];
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(monday);
+      d.setDate(monday.getDate() + i);
+      days.push(d);
+    }
+    return days;
+  }
+
+  function buildDayItem(key, it) {
+    const item = document.createElement('div');
+    item.className = 'day-item' + (it.done ? ' done' : '');
+
+    const check = document.createElement('span');
+    check.className = 'd-check';
+    check.textContent = it.done ? '✓' : '';
+    check.addEventListener('click', () => {
+      it.done = !it.done;
+      saveWeek();
+      renderWeek();
+    });
+
+    const text = document.createElement('span');
+    text.className = 'd-text';
+    text.textContent = it.text;
+
+    const del = document.createElement('button');
+    del.className = 'd-del';
+    del.textContent = '✕';
+    del.title = '删除';
+    del.addEventListener('click', () => {
+      weekPlan[key] = (weekPlan[key] || []).filter((x) => x.id !== it.id);
+      saveWeek();
+      renderWeek();
+    });
+
+    item.append(check, text, del);
+    return item;
+  }
+
+  function renderWeek() {
+    const days = weekDays(weekOffset);
+    const todayKey = dateKey(new Date());
+    const fmt = (d) => (d.getMonth() + 1) + '月' + d.getDate() + '日';
+    weekRange.textContent = fmt(days[0]) + ' – ' + fmt(days[6]);
+
+    weekGrid.innerHTML = '';
+    days.forEach((d, i) => {
+      const key = dateKey(d);
+      const col = document.createElement('div');
+      col.className = 'day-col c' + i + (key === todayKey ? ' today' : '');
+
+      const head = document.createElement('div');
+      head.className = 'day-head';
+      head.innerHTML =
+        '<span class="day-name">' + DAY_NAMES[i] + '</span>' +
+        '<span class="day-date">' + (d.getMonth() + 1) + '/' + d.getDate() + '</span>';
+      col.appendChild(head);
+
+      const list = document.createElement('div');
+      list.className = 'day-list';
+      (weekPlan[key] || []).forEach((it) => list.appendChild(buildDayItem(key, it)));
+      col.appendChild(list);
+
+      const addWrap = document.createElement('div');
+      addWrap.className = 'day-add';
+      const inp = document.createElement('input');
+      inp.type = 'text';
+      inp.maxLength = 40;
+      inp.placeholder = '＋';
+      inp.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter') {
+          const text = inp.value.trim();
+          if (!text) return;
+          if (!weekPlan[key]) weekPlan[key] = [];
+          weekPlan[key].push({
+            id: Date.now() + Math.random().toString(36).slice(2),
+            text: text,
+            done: false
+          });
+          saveWeek();
+          renderWeek();
+          const cols = weekGrid.querySelectorAll('.day-col');
+          const nextInput = cols[i] && cols[i].querySelector('.day-add input');
+          if (nextInput) nextInput.focus();
+        }
+      });
+      addWrap.appendChild(inp);
+      col.appendChild(addWrap);
+
+      weekGrid.appendChild(col);
+    });
+  }
+
+  weekPrev.addEventListener('click', () => { weekOffset--; renderWeek(); });
+  weekNext.addEventListener('click', () => { weekOffset++; renderWeek(); });
+
+  renderWeek();
+
+  render();
+})();
+</script>
+</body>
+</html>
