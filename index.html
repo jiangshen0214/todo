@@ -6,18 +6,18 @@
 <title>日历待办</title>
 <style>
   :root {
-    --orange: #F28C38;
-    --orange-dark: #E07B25;
-    --orange-soft: #FEF0E5;
-    --orange-border: #FBE0C8;
-    --bg: #F6F7F9;
-    --card: #FFFFFF;
-    --ink: #1F2937;
-    --ink-soft: #6B7280;
-    --ink-faint: #9CA3AF;
-    --line: #EEF0F3;
+    --orange: #C74B2E;
+    --orange-dark: #A93A20;
+    --orange-soft: #F7E8DE;
+    --orange-border: #ECCBB8;
+    --bg: #F4EFE6;
+    --card: #FCFAF4;
+    --ink: #2B2B2B;
+    --ink-soft: #5C5C5C;
+    --ink-faint: #A29A8B;
+    --line: #E8E1D3;
     --radius: 16px;
-    --shadow: 0 1px 2px rgba(16, 24, 40, .04), 0 1px 3px rgba(16, 24, 40, .06);
+    --shadow: 0 1px 2px rgba(43, 38, 28, .05), 0 1px 3px rgba(43, 38, 28, .08);
   }
 
   * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -29,10 +29,63 @@
       "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
     color: var(--ink);
     background: var(--bg);
+    background-image:
+      radial-gradient(1100px 560px at 82% -8%, rgba(199, 75, 46, .06), transparent 62%),
+      radial-gradient(900px 520px at 8% 108%, rgba(43, 43, 43, .06), transparent 62%);
     -webkit-font-smoothing: antialiased;
   }
 
   button { font-family: inherit; }
+
+  /* ===== 水墨背景层 ===== */
+  .ink-bg {
+    position: fixed;
+    inset: 0;
+    z-index: 0;
+    pointer-events: none;
+  }
+  .ink-bg svg { width: 100%; height: 100%; display: block; }
+
+  .app { position: relative; z-index: 1; }
+
+  /* ===== 竖排题字（三十年河东……） ===== */
+  .quote-wrap {
+    position: fixed;
+    right: 40px;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 5;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 22px;
+    pointer-events: none;
+  }
+  .quote {
+    writing-mode: vertical-rl;
+    font-family: "STKaiti", "KaiTi", "楷体", "华文行楷", "STXingkai", serif;
+    font-size: 30px;
+    letter-spacing: 9px;
+    color: #3a3428;
+    opacity: .55;
+    text-shadow: 0 1px 0 rgba(255, 255, 255, .6);
+  }
+  .quote span { display: block; }
+  .seal {
+    width: 46px; height: 46px;
+    background: var(--orange);
+    color: #fdf6ee;
+    font-family: "STKaiti", "KaiTi", "楷体", serif;
+    font-size: 28px;
+    line-height: 1;
+    display: flex; align-items: center; justify-content: center;
+    border-radius: 6px;
+    box-shadow: inset 0 0 0 2px rgba(255, 255, 255, .22), 0 2px 6px rgba(0, 0, 0, .16);
+    opacity: .92;
+  }
+  @media (max-width: 1100px) {
+    .quote-wrap { display: none; }
+  }
 
   /* ===== 整体布局 ===== */
   .app { display: flex; min-height: 100vh; }
@@ -45,7 +98,9 @@
     height: 100vh;
     display: flex;
     flex-direction: column;
-    background: var(--card);
+    background: rgba(252, 250, 244, .82);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     border-right: 1px solid var(--line);
     padding: 24px 16px;
     overflow: hidden;
@@ -79,7 +134,7 @@
     user-select: none;
     white-space: nowrap;
   }
-  .nav-item:hover { background: #F4F5F7; color: var(--ink); }
+  .nav-item:hover { background: #F3EEE3; color: var(--ink); }
   .nav-item.active { background: var(--orange-soft); color: var(--orange-dark); font-weight: 600; }
   .nav-icon { font-size: 18px; line-height: 1; }
 
@@ -96,7 +151,9 @@
     z-index: 10;
     display: flex; align-items: center; justify-content: space-between;
     gap: 12px;
-    background: var(--card);
+    background: rgba(252, 250, 244, .82);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
     border-bottom: 1px solid var(--line);
     padding: 12px 20px;
   }
@@ -112,7 +169,7 @@
     cursor: pointer;
     transition: background .15s, color .15s;
   }
-  .icon-btn:hover { background: #F4F5F7; color: var(--ink); }
+  .icon-btn:hover { background: #F3EEE3; color: var(--ink); }
 
   .month-display { font-size: 17px; font-weight: 700; letter-spacing: .5px; }
 
@@ -166,7 +223,7 @@
     cursor: pointer;
     transition: background .15s, color .15s;
   }
-  .cal-nav button:hover { background: #F4F5F7; color: var(--ink); }
+  .cal-nav button:hover { background: #F3EEE3; color: var(--ink); }
 
   .weekdays {
     display: grid;
@@ -191,7 +248,7 @@
     cursor: pointer;
     transition: background .15s;
   }
-  .cell:hover { background: #F7F8FA; }
+  .cell:hover { background: #F5F0E6; }
   .cell.muted { opacity: .35; }
   .cell.muted:hover { background: transparent; }
   .cell.selected { background: var(--orange-soft); }
@@ -369,7 +426,7 @@
     border-radius: 50%;
     cursor: pointer;
   }
-  .modal-close:hover { background: #F4F5F7; color: var(--ink); }
+  .modal-close:hover { background: #F3EEE3; color: var(--ink); }
 
   .modal-body { padding: 6px 20px 4px; }
 
@@ -431,7 +488,7 @@
   .tag-chip {
     font-size: 13px;
     color: var(--ink-soft);
-    background: #F4F5F7;
+    background: #F3EEE3;
     border: 1.5px solid transparent;
     border-radius: 20px;
     padding: 5px 14px;
@@ -498,8 +555,8 @@
     cursor: pointer;
     transition: background .15s;
   }
-  .btn-cancel { background: #F4F5F7; color: var(--ink-soft); }
-  .btn-cancel:hover { background: #EAECEF; }
+  .btn-cancel { background: #F3EEE3; color: var(--ink-soft); }
+  .btn-cancel:hover { background: #E9E2D4; }
   .btn-save { background: var(--orange); color: #fff; }
   .btn-save:hover { background: var(--orange-dark); }
 
@@ -531,6 +588,35 @@
 </style>
 </head>
 <body>
+  <!-- 水墨背景：远山 + 墨晕 -->
+  <div class="ink-bg" aria-hidden="true">
+    <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
+      <defs>
+        <radialGradient id="inkBlot" cx="50%" cy="50%" r="50%">
+          <stop offset="0%" stop-color="#3a3428" stop-opacity="0.12"/>
+          <stop offset="68%" stop-color="#3a3428" stop-opacity="0.04"/>
+          <stop offset="100%" stop-color="#3a3428" stop-opacity="0"/>
+        </radialGradient>
+      </defs>
+      <circle cx="1180" cy="210" r="320" fill="url(#inkBlot)"/>
+      <circle cx="170" cy="640" r="380" fill="url(#inkBlot)"/>
+      <path d="M0 640 L150 560 L300 620 L430 540 L580 610 L700 560 L850 630 L980 545 L1120 615 L1260 555 L1440 605 L1440 900 L0 900 Z" fill="#e7e1d3"/>
+      <path d="M0 700 L140 640 L290 705 L440 610 L600 690 L760 635 L900 705 L1050 620 L1210 690 L1360 640 L1440 690 L1440 900 L0 900 Z" fill="#d7cfbd" opacity="0.85"/>
+      <path d="M0 770 L180 700 L360 760 L540 685 L720 755 L900 695 L1080 760 L1260 705 L1440 755 L1440 900 L0 900 Z" fill="#c2b9a5" opacity="0.7"/>
+      <path d="M0 835 L220 780 L430 830 L650 775 L860 825 L1080 780 L1300 830 L1440 795 L1440 900 L0 900 Z" fill="#a99f8b" opacity="0.55"/>
+    </svg>
+  </div>
+
+  <!-- 竖排题字 -->
+  <div class="quote-wrap" aria-hidden="true">
+    <div class="quote">
+      <span>三十年河东，</span>
+      <span>三十年河西，</span>
+      <span>莫欺少年穷！</span>
+    </div>
+    <div class="seal">炎</div>
+  </div>
+
   <div class="app" id="app">
     <!-- 左侧侧边栏 -->
     <aside class="sidebar">
