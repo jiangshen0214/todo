@@ -560,6 +560,91 @@
   .btn-save { background: var(--orange); color: #fff; }
   .btn-save:hover { background: var(--orange-dark); }
 
+  /* ===== 背景预设 ===== */
+  body[data-bg="light"] {
+    --orange: #F28C38; --orange-dark: #E07B25; --orange-soft: #FEF0E5; --orange-border: #FBE0C8;
+    --bg: #F6F7F9; --card: #FFFFFF; --ink: #1F2937; --ink-soft: #6B7280; --ink-faint: #9CA3AF; --line: #EEF0F3;
+    background: var(--bg);
+    background-image: none;
+  }
+  body[data-bg="light"] .ink-bg,
+  body[data-bg="light"] .quote-wrap { display: none; }
+  body[data-bg="light"] .sidebar,
+  body[data-bg="light"] .topbar { background: var(--card); backdrop-filter: none; -webkit-backdrop-filter: none; }
+
+  body[data-bg="night"] {
+    --bg: #141A26;
+    background: #141A26;
+    background-image:
+      radial-gradient(900px 480px at 78% 10%, rgba(199, 75, 46, .30), transparent 62%),
+      radial-gradient(760px 460px at 16% 96%, rgba(199, 75, 46, .12), transparent 62%);
+  }
+  body[data-bg="night"] .ink-bg { display: none; }
+  body[data-bg="night"] .quote { color: rgba(255, 255, 255, .72); text-shadow: 0 1px 5px rgba(0, 0, 0, .45); }
+  body[data-bg="night"] .seal { opacity: 1; }
+
+  body[data-bg="custom"] .ink-bg,
+  body[data-bg="custom"] .quote-wrap { display: none; }
+  body[data-bg="custom"] .sidebar,
+  body[data-bg="custom"] .topbar { background: rgba(252, 250, 244, .94); }
+
+  /* ===== 顶栏右侧 ===== */
+  .topbar-right { display: flex; align-items: center; gap: 6px; }
+
+  /* ===== 背景设置弹窗 ===== */
+  .bg-body { padding-bottom: 8px; }
+  .bg-label { font-size: 13px; font-weight: 600; color: var(--ink-soft); margin: 10px 0 8px; }
+  .bg-presets { display: grid; grid-template-columns: repeat(3, 1fr); gap: 10px; }
+  .bg-preset {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    padding: 10px 6px;
+    border: 1.5px solid var(--line);
+    border-radius: 12px;
+    background: transparent;
+    cursor: pointer;
+    font-size: 13px;
+    color: var(--ink-soft);
+    transition: all .15s;
+  }
+  .bg-preset:hover { border-color: var(--orange-border); color: var(--ink); }
+  .bg-preset.active { border-color: var(--orange); color: var(--orange-dark); font-weight: 600; background: var(--orange-soft); }
+  .bg-thumb { width: 100%; height: 44px; border-radius: 8px; display: block; border: 1px solid rgba(0, 0, 0, .06); }
+  .thumb-ink { background: linear-gradient(180deg, #F4EFE6 0%, #F4EFE6 55%, #C2B9A5 100%); }
+  .thumb-light { background: #F6F7F9; }
+  .thumb-night { background: radial-gradient(circle at 70% 18%, #C74B2E 0%, #141A26 62%); }
+
+  .bg-upload { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .bg-preview {
+    width: 100%; height: 64px;
+    border: 1.5px dashed var(--line);
+    border-radius: 10px;
+    display: flex; align-items: center; justify-content: center;
+    color: var(--ink-faint); font-size: 13px;
+    background-size: cover; background-position: center;
+    overflow: hidden;
+  }
+  .bg-preview.has { border-style: solid; color: transparent; }
+  .bg-choose {
+    flex: 1;
+    font-size: 14px; font-weight: 600;
+    color: #fff;
+    background: var(--orange);
+    border: none; border-radius: 10px;
+    padding: 10px 0;
+    cursor: pointer;
+  }
+  .bg-choose:hover { background: var(--orange-dark); }
+  .bg-remove {
+    font-size: 14px;
+    color: var(--ink-soft);
+    background: #F3EEE3;
+    border: none; border-radius: 10px;
+    padding: 10px 16px;
+    cursor: pointer;
+  }
+  .bg-remove:hover { background: #E9E2D4; }
+  .bg-hint { font-size: 12px; color: var(--ink-faint); margin-top: 10px; line-height: 1.6; }
+
   /* ===== 响应式 ===== */
   @media (max-width: 768px) {
     .app { flex-direction: column; }
@@ -647,9 +732,12 @@
           <button class="icon-btn" id="toggleSidebar" title="收起/展开侧边栏">☰</button>
           <span class="month-display" id="monthDisplay">2026.10</span>
         </div>
-        <div class="search-wrap" id="searchWrap">
-          <input class="search-input" id="searchInput" type="text" placeholder="搜索任务…" />
-          <button class="icon-btn" id="searchBtn" title="搜索">🔍</button>
+        <div class="topbar-right">
+          <div class="search-wrap" id="searchWrap">
+            <input class="search-input" id="searchInput" type="text" placeholder="搜索任务…" />
+            <button class="icon-btn" id="searchBtn" title="搜索">🔍</button>
+          </div>
+          <button class="icon-btn" id="bgBtn" title="自定义背景">🎨</button>
         </div>
       </header>
 
@@ -725,6 +813,45 @@
       <div class="modal-actions">
         <button class="btn-cancel" id="modalCancel">取消</button>
         <button class="btn-save" id="modalSave">保存</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 自定义背景弹窗 -->
+  <div class="modal-mask" id="bgMask">
+    <div class="modal">
+      <div class="modal-head">
+        <span class="modal-title">自定义背景</span>
+        <button class="modal-close" id="bgClose">✕</button>
+      </div>
+      <div class="modal-body bg-body">
+        <div class="bg-label">预设背景</div>
+        <div class="bg-presets">
+          <button class="bg-preset" data-bg="ink">
+            <span class="bg-thumb thumb-ink"></span>
+            <span>水墨 · 宣纸</span>
+          </button>
+          <button class="bg-preset" data-bg="light">
+            <span class="bg-thumb thumb-light"></span>
+            <span>极简 · 浅色</span>
+          </button>
+          <button class="bg-preset" data-bg="night">
+            <span class="bg-thumb thumb-night"></span>
+            <span>墨夜 · 异火</span>
+          </button>
+        </div>
+
+        <div class="bg-label">上传图片</div>
+        <div class="bg-upload">
+          <div class="bg-preview" id="bgPreview">选择图片后会在此预览</div>
+          <button class="bg-choose" id="bgChoose">选择图片</button>
+          <button class="bg-remove" id="bgRemove">移除图片</button>
+          <input type="file" id="bgFile" accept="image/*" hidden />
+        </div>
+        <p class="bg-hint">图片会铺满整个背景，任务卡片保持浅色以便阅读。选「移除图片」可回到预设背景。</p>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="bgDone">完成</button>
       </div>
     </div>
   </div>
@@ -1178,7 +1305,73 @@
     renderDay();
   });
 
+  /* ===================== 背景自定义 ===================== */
+  var BG_KEY = 'calendar-bg-v1';
+  var bgPref = loadBg();
+
+  function loadBg() {
+    try { return JSON.parse(localStorage.getItem(BG_KEY)) || { mode: 'ink', image: '' }; }
+    catch (e) { return { mode: 'ink', image: '' }; }
+  }
+  function saveBg() { localStorage.setItem(BG_KEY, JSON.stringify(bgPref)); }
+
+  function applyBg() {
+    var mode = bgPref.mode;
+    document.body.dataset.bg = mode;
+    if (mode === 'custom' && bgPref.image) {
+      document.body.style.background = 'url(' + bgPref.image + ') center / cover no-repeat fixed, #2B2B2B';
+    } else {
+      document.body.style.background = '';
+    }
+    document.querySelectorAll('.bg-preset').forEach(function (b) {
+      b.classList.toggle('active', b.dataset.bg === mode);
+    });
+    var preview = $('bgPreview');
+    if (mode === 'custom' && bgPref.image) {
+      preview.classList.add('has');
+      preview.style.backgroundImage = 'url(' + bgPref.image + ')';
+      preview.textContent = '';
+    } else {
+      preview.classList.remove('has');
+      preview.style.backgroundImage = '';
+      preview.textContent = '选择图片后会在此预览';
+    }
+  }
+
+  function setBgMode(mode) {
+    bgPref.mode = mode;
+    bgPref.image = '';
+    saveBg();
+    applyBg();
+  }
+
+  $('bgBtn').addEventListener('click', function () { $('bgMask').classList.add('open'); applyBg(); });
+  $('bgClose').addEventListener('click', function () { $('bgMask').classList.remove('open'); });
+  $('bgDone').addEventListener('click', function () { $('bgMask').classList.remove('open'); });
+  $('bgMask').addEventListener('click', function (e) { if (e.target === $('bgMask')) $('bgMask').classList.remove('open'); });
+
+  document.querySelectorAll('.bg-preset').forEach(function (btn) {
+    btn.addEventListener('click', function () { setBgMode(btn.dataset.bg); });
+  });
+
+  $('bgChoose').addEventListener('click', function () { $('bgFile').click(); });
+  $('bgFile').addEventListener('change', function () {
+    var f = this.files && this.files[0];
+    if (!f) return;
+    if (f.size > 4 * 1024 * 1024) { alert('图片太大，请选择 4MB 以内的图片'); return; }
+    var reader = new FileReader();
+    reader.onload = function () {
+      bgPref.mode = 'custom';
+      bgPref.image = reader.result;
+      saveBg();
+      applyBg();
+    };
+    reader.readAsDataURL(f);
+  });
+  $('bgRemove').addEventListener('click', function () { setBgMode('ink'); });
+
   /* ===================== 初始化 ===================== */
+  applyBg();
   renderCalendar();
   renderDay();
 })();
