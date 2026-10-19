@@ -745,6 +745,31 @@
   .help-p b { color: var(--ink); }
   .help-note { font-size: 12px; color: var(--ink-faint); margin-top: 12px; line-height: 1.6; }
 
+  /* ===== 多端同步 ===== */
+  .sync-code {
+    display: flex; align-items: center; justify-content: center; gap: 10px;
+    font-size: 26px; font-weight: 700; letter-spacing: 3px; color: var(--orange-dark);
+    background: var(--orange-soft); border: 1.5px dashed var(--orange-border);
+    border-radius: 14px; padding: 18px 12px; margin: 10px 0 6px;
+  }
+  .sync-status { font-size: 13px; color: var(--ink-soft); line-height: 1.6; text-align: center; margin: 6px 0; }
+  .sync-status b { color: var(--ink); }
+  .sync-input {
+    width: 100%; font-family: inherit; font-size: 15px; color: var(--ink);
+    border: 1.5px solid var(--line); border-radius: 12px; padding: 11px 12px;
+    outline: none; margin-top: 12px; text-transform: uppercase;
+  }
+  .sync-input::placeholder { color: var(--ink-faint); text-transform: none; }
+  .sync-input:focus { border-color: var(--orange); }
+  .sync-row { display: flex; gap: 10px; margin-top: 14px; }
+  .sync-row button {
+    flex: 1; font-size: 14px; font-weight: 600; border: none; border-radius: 12px;
+    padding: 11px 0; cursor: pointer; transition: all .15s;
+  }
+  .sync-link-btn { background: transparent; color: var(--orange-dark); border: 1.5px solid var(--orange-border); }
+  .sync-link-btn:hover { background: var(--orange-soft); }
+  .sync-hint { font-size: 12px; color: var(--ink-faint); line-height: 1.6; margin-top: 12px; }
+
   /* ===== 小组件管理 ===== */
   .add-widget-btn {
     width: 100%;
@@ -854,6 +879,8 @@
 </style>
 </head>
 <body>
+  <!-- 腾讯云开发 CloudBase Web SDK（多端同步） -->
+  <script src="https://static.cloudbase.net/cloudbase-js-sdk/latest/cloudbase.full.js"></script>
   <!-- 水墨背景：远山 + 墨晕 -->
   <div class="ink-bg" aria-hidden="true">
     <svg viewBox="0 0 1440 900" preserveAspectRatio="xMidYMax slice" xmlns="http://www.w3.org/2000/svg">
@@ -994,6 +1021,7 @@
           </section>
 
           <section class="profile-list">
+            <div class="list-item" data-action="sync"><span class="li-icon">☁️</span><span class="li-label">多端同步</span><span class="li-arrow">›</span></div>
             <div class="list-item" data-action="bg"><span class="li-icon">🎨</span><span class="li-label">个性化设置</span><span class="li-arrow">›</span></div>
             <div class="list-item" data-action="export"><span class="li-icon">📤</span><span class="li-label">导出数据</span><span class="li-arrow">›</span></div>
             <div class="list-item" data-action="help"><span class="li-icon">💬</span><span class="li-label">帮助与反馈</span><span class="li-arrow">›</span></div>
@@ -1103,11 +1131,48 @@
           <p class="help-p">🎯 <b>打卡</b>：创建目标后每天打卡，顶部可查看本周进度。</p>
           <p class="help-p">🧩 <b>小组件</b>：打卡天数、倒数日、纪念日等卡片，可自由增删。</p>
           <p class="help-p">📤 <b>导出数据</b>：在「我的」页可把全部待办导出成 JSON 备份。</p>
+          <p class="help-p">☁️ <b>多端同步</b>：在「我的 → 多端同步」开启后会生成同步码，另一台设备输入该码即可同步同一份待办。</p>
         </div>
-        <p class="help-note">数据保存在本地浏览器（localStorage），清除浏览器缓存会丢失，请定期导出备份。</p>
+        <p class="help-note">数据默认保存在本地浏览器；开启「多端同步」后会同时备份到云端，换设备不再丢失。</p>
       </div>
       <div class="modal-actions">
         <button class="btn-cancel" id="helpDone">知道了</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 多端同步弹窗 -->
+  <div class="modal-mask" id="syncMask">
+    <div class="modal">
+      <div class="modal-head">
+        <span class="modal-title">多端同步</span>
+        <button class="modal-close" id="syncClose">✕</button>
+      </div>
+      <div class="modal-body">
+        <div id="syncPanelOff">
+          <p class="sync-status">开启后，待办任务会保存到云端，可在其他设备用同一「同步码」查看与编辑。</p>
+          <div class="sync-row">
+            <button class="btn-save" id="syncEnable">开启同步</button>
+          </div>
+          <input type="text" class="sync-input" id="syncCodeInput" placeholder="已有同步码？输入后绑定" maxlength="9" />
+          <div class="sync-row">
+            <button class="sync-link-btn" id="syncBind">绑定同步码</button>
+          </div>
+          <p class="sync-hint">同步码由字母和数字组成，例如 A3F9-K2P7。知道该码即可读写同一份数据，请妥善保管。</p>
+        </div>
+        <div id="syncPanelOn" style="display:none">
+          <p class="sync-status">已开启同步，你的同步码：</p>
+          <div class="sync-code" id="syncCodeShow">--------</div>
+          <p class="sync-status" id="syncStatusText"></p>
+          <div class="sync-row">
+            <button class="btn-cancel" id="syncCopy">复制</button>
+            <button class="sync-link-btn" id="syncUnbind">解绑</button>
+          </div>
+          <p class="sync-hint">在另一台设备「我的 → 多端同步 → 绑定同步码」输入此码，即可同步同一份待办。</p>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn-cancel" id="syncDone">完成</button>
       </div>
     </div>
   </div>
@@ -1226,6 +1291,13 @@
   var STORAGE_KEY = 'calendar-tasks-v1';
   var $ = function (id) { return document.getElementById(id); };
 
+  /* --- 多端同步配置 --- */
+  var ENV_ID = '';                       // TODO: 填入腾讯云开发环境 ID
+  var SYNC_CODE_KEY = 'calendar-sync-code';
+  var META_KEY = 'calendar-tasks-meta';  // { updatedAt }
+  var DB_COLLECTION = 'workspaces';
+  var syncCode = localStorage.getItem(SYNC_CODE_KEY) || '';
+
   var now = new Date();
   var viewYear = now.getFullYear();
   var viewMonth = now.getMonth() + 1; // 1-12
@@ -1241,7 +1313,17 @@
       return raw ? JSON.parse(raw) : {};
     } catch (e) { return {}; }
   }
-  function save() { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); }
+  function lastUpdated() {
+    try {
+      var raw = localStorage.getItem(META_KEY);
+      return raw ? (JSON.parse(raw).updatedAt || 0) : 0;
+    } catch (e) { return 0; }
+  }
+  function save() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+    localStorage.setItem(META_KEY, JSON.stringify({ updatedAt: Date.now() }));
+    schedulePush();
+  }
 
   function dateKey(d) {
     return d.getFullYear() + '-' + (d.getMonth() + 1) + '-' + d.getDate();
@@ -1905,6 +1987,7 @@
       if (action === 'bg') { $('bgMask').classList.add('open'); applyBg(); }
       else if (action === 'export') { exportJSON(); }
       else if (action === 'help') { $('helpMask').classList.add('open'); }
+      else if (action === 'sync') { openSync(); }
     });
   });
 
@@ -1912,12 +1995,134 @@
   $('helpDone').addEventListener('click', function () { $('helpMask').classList.remove('open'); });
   $('helpMask').addEventListener('click', function (e) { if (e.target === $('helpMask')) $('helpMask').classList.remove('open'); });
 
+  /* ===================== 多端同步 ===================== */
+  var _cloud = null;
+  var _pushTimer = null;
+
+  function initCloud() {
+    if (_cloud) return Promise.resolve(_cloud);
+    if (!window.cloudbase) return Promise.reject(new Error('CloudBase SDK 未加载'));
+    if (!ENV_ID) return Promise.reject(new Error('未配置环境 ID'));
+    var app = window.cloudbase.init({ env: ENV_ID });
+    var auth = app.auth({ persistence: 'local' });
+    var db = app.database();
+    _cloud = { app: app, auth: auth, db: db };
+    return auth.signInAnonymously().then(function () { return _cloud; });
+  }
+
+  function genSyncCode() {
+    var chars = 'ABCDEFGHJKMNPQRSTUVWXYZ23456789'; // 去掉易混淆的 I L O 0 1
+    var s = '';
+    for (var i = 0; i < 8; i++) s += chars.charAt(Math.floor(Math.random() * chars.length));
+    return s;
+  }
+  function codeDisplay(c) { return c.slice(0, 4) + '-' + c.slice(4); }
+  function normalizeCode(s) { return String(s || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 8); }
+
+  function pushToCloud() {
+    if (!syncCode || !ENV_ID) return Promise.resolve();
+    var ts = lastUpdated();
+    if (!ts) { ts = Date.now(); localStorage.setItem(META_KEY, JSON.stringify({ updatedAt: ts })); }
+    return initCloud().then(function (c) {
+      return c.db.collection(DB_COLLECTION).doc(syncCode).set({ tasks: tasks, updatedAt: ts });
+    }).catch(function () { /* 离线/失败静默，下次改动再推 */ });
+  }
+
+  function schedulePush() {
+    if (!syncCode || !ENV_ID) return;
+    if (_pushTimer) clearTimeout(_pushTimer);
+    _pushTimer = setTimeout(function () { pushToCloud(); }, 600);
+  }
+
+  function syncFromCloud() {
+    if (!syncCode || !ENV_ID) return Promise.resolve();
+    return initCloud().then(function (c) {
+      return c.db.collection(DB_COLLECTION).doc(syncCode).get();
+    }).then(function (res) {
+      var arr = res && res.data;
+      var doc = Array.isArray(arr) ? arr[0] : arr;
+      if (!doc) { return pushToCloud(); } // 云端不存在 → 用本地数据初始化
+      var cloudTasks = doc.tasks || {};
+      var cloudUpdatedAt = doc.updatedAt || 0;
+      if (cloudUpdatedAt > lastUpdated()) {
+        tasks = cloudTasks;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks));
+        localStorage.setItem(META_KEY, JSON.stringify({ updatedAt: cloudUpdatedAt }));
+        renderDay(); renderCalendar();
+      } else {
+        return pushToCloud();
+      }
+    }).catch(function () { /* 离线静默 */ });
+  }
+
+  function renderSyncPanel() {
+    var on = !!syncCode;
+    $('syncPanelOff').style.display = on ? 'none' : '';
+    $('syncPanelOn').style.display = on ? '' : 'none';
+    if (on) {
+      $('syncCodeShow').textContent = codeDisplay(syncCode);
+      $('syncStatusText').innerHTML = '共 <b>' + countTasks() + '</b> 条任务已同步';
+    }
+  }
+
+  function openSync() {
+    $('syncCodeInput').value = '';
+    renderSyncPanel();
+    $('syncMask').classList.add('open');
+  }
+
+  function enableSync() {
+    syncCode = genSyncCode();
+    localStorage.setItem(SYNC_CODE_KEY, syncCode);
+    syncFromCloud().then(function () { renderSyncPanel(); toast('已开启同步'); });
+  }
+
+  function bindSyncCode(code) {
+    var c = normalizeCode(code);
+    if (c.length !== 8) { toast('请输入 8 位同步码'); return; }
+    syncCode = c;
+    localStorage.setItem(SYNC_CODE_KEY, c);
+    syncFromCloud().then(function () { renderSyncPanel(); toast('已绑定同步码 ' + codeDisplay(c)); });
+  }
+
+  function unbindSync() {
+    syncCode = '';
+    localStorage.removeItem(SYNC_CODE_KEY);
+    if (_pushTimer) { clearTimeout(_pushTimer); _pushTimer = null; }
+    renderSyncPanel();
+    toast('已解绑，回到本地模式');
+  }
+
+  $('syncClose').addEventListener('click', function () { $('syncMask').classList.remove('open'); });
+  $('syncDone').addEventListener('click', function () { $('syncMask').classList.remove('open'); });
+  $('syncMask').addEventListener('click', function (e) { if (e.target === $('syncMask')) $('syncMask').classList.remove('open'); });
+  $('syncEnable').addEventListener('click', function () {
+    if (!ENV_ID) { toast('请先在代码里配置云开发环境 ID（ENV_ID）'); return; }
+    enableSync();
+  });
+  $('syncBind').addEventListener('click', function () {
+    if (!ENV_ID) { toast('请先在代码里配置云开发环境 ID（ENV_ID）'); return; }
+    bindSyncCode($('syncCodeInput').value);
+  });
+  $('syncCodeInput').addEventListener('keydown', function (e) { if (e.key === 'Enter') $('syncBind').click(); });
+  $('syncCopy').addEventListener('click', function () {
+    var code = codeDisplay(syncCode);
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      navigator.clipboard.writeText(code).then(
+        function () { toast('已复制 ' + code); },
+        function () { toast('复制失败，请手动记录 ' + code); }
+      );
+    } else { toast('复制失败，请手动记录 ' + code); }
+  });
+  $('syncUnbind').addEventListener('click', function () { unbindSync(); });
+
   /* ===================== 初始化 ===================== */
   applyBg();
   renderCalendar();
   renderDay();
   renderWeek();
   renderWidgets();
+  if (syncCode && ENV_ID) syncFromCloud();
 })();
 </script>
 </body>
